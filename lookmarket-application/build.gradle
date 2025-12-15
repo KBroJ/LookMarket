@@ -1,0 +1,28 @@
+dependencies {
+    implementation project(':stylehub-common')
+    implementation project(':stylehub-domain')
+    implementation project(':stylehub-infrastructure')
+
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter'
+
+    // Spring Batch
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Transaction
+    implementation 'org.springframework:spring-tx'
+
+    // Test
+    testImplementation 'org.springframework.batch:spring-batch-test'
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}

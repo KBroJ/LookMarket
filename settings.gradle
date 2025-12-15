@@ -1,0 +1,7 @@
+rootProject.name = 'lookmarket'
+
+include 'lookmarket-api'
+include 'lookmarket-application'
+include 'lookmarket-domain'
+include 'lookmarket-infrastructure'
+include 'lookmarket-common'

@@ -1,0 +1,416 @@
+window 환경에서 클로드 코드 및 관련 설치
+
+========================================================================================================================================================================
+
+	◆ Node.js 설치
+		Claude CLI는 Node.js 기술 기반으로 제작되었기 때문에 사전에 설치 필요
+		
+		□ https://nodejs.org/ 공식홈페이지에서 설치
+		■ 노드 설치 및 버전 확인 : node -v
+			* v18.0.0 이상의 버전이 표시되면 Claude CLI 준비 완료
+			
+		※ WSL 에서 설치
+
+			# 1. curl 설치 확인
+			sudo apt install -y curl
+
+			# 2. NodeSource GPG 키 및 저장소 추가
+			curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+
+			# 3. Node.js 설치
+			sudo apt install -y nodejs
+
+			# 4. 설치 확인
+			node --version
+			npm --version
+		
+	◇ Anthropic 계정 및 플랜
+		
+		Claude CLI 를 사용하기 위해선 구독 결제가 필요하다.
+		
+========================================================================================================================================================================
+		
+	★ Claude CLI 설치
+	
+		터미널을 연다 > 터미널에서 설치 명령어를 입력한다
+		
+			■ Claude CLI 설치 명령어 : npm install -g @anthropic-ai/claude-code
+				* g : 이 도구를 컴퓨터의 어떤 폴더에서든 사용할 수 있도로 전역으로 설치
+				
+			□ 설치 및 버전 확인 : claude --version
+			
+			
+		※ WSL 에서 설치
+
+			# Claude Code CLI 설치
+			npm install -g @anthropics/claude-code
+
+			# 설치 확인
+			claude --version
+			
+========================================================================================================================================================================
+			
+	◆ Github CLI 설치
+	
+		#Window_PowerShell
+			# GitHub CLI 설치
+			winget install --id GitHub.cli
+			※ 설치 후 터미널 재실행 필요
+
+			# 설치 확인
+			gh --version
+
+		#WSL
+			# 1. GitHub CLI 저장소 키 추가
+			type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+			curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+			sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+
+			# 2. GitHub CLI 저장소 추가
+			echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+
+			# 3. 패키지 목록 업데이트
+			sudo apt update
+
+			# 4. GitHub CLI 설치
+			sudo apt install gh -y
+
+			# 5. 설치 확인
+			gh --version
+			
+		◇ github 관련 프롬프트 예시
+		
+			@claude.md 를 참고해서, 현재 git 변경사항에 대해 커밋하고 pull request 를 gh를 이용해서 만들어봐
+			
+			GitHub 이슈 #[이슈번호]의 작업을 위한 브랜치를 생성하고 이동해줘. 브랜치 이름은 우리 팀의 브랜칭 전략을 반드시 따라야 해. 깃헙 이슈 확인을 위해 gh를 사용해
+			
+			작가 프로필 기능 개발을 완료했어. git diff 를 분석해서, @claude.md 의 커밋 메시지 규칙에 따라 완벽한 커밋 메시지를 작성하고 커밋해줘.
+		
+			이제 코드 리뷰를 요청할 시간이야. gh pr create 명령어를 사용해서 PR을 생성해줘. 제목과 본문은 마지막 커밋 메시지를 그대로 사용해. 
+			'ui' 라벨도 추가해줘. 라벨이 없다면 만들어와
+			
+			gh pr checks 명령어로 내 PR의 현재 상태를 확인해줘. 그리고 gh pr diff를 보고 리뷰 코멘트를 확인한 다음, 모든 피드백을 코드에 반영해줘.
+			만약 코드를 수정하는 동안 main 브랜치와 충돌(conflict)이 발생하면, git merge main을 실행하고 충돌을 해결한 뒤 계속 진행해줘.
+			
+			모든 리뷰가 완료되었어. gh pr merge 명령어를 실행해서 내 PR을 병합해줘.
+			병합 옵션은 --squash를 사용해서 커밋 기록을 깔끔하게 하나로 합쳐주고, --delete-branch 옵션으로 병합이 완료된 피처 브랜치는 바로 삭제해줘.
+			마지막으로, git checkout main과 git pull을 실행해서 내 로컬 환경을 최신 상태로 유지해줘.
+		
+========================================================================================================================================================================
+		
+	◆ Claude squad 설치
+	
+		※ Windows PowerShell에서 직접 사용 불가하므로 WSL 상에서 설치 및 진행해야 함
+		※ git repository 가 있는 폴더에서 실행해야 함
+		※ Claude Squad는 각 세션을 Git worktree로 관리하는데, worktree를 만들려면 최소 1개의 커밋이 필요
+		
+		사전 준비
+			◇ WSL 설치
+				
+				# WSL 설치 (기본: Ubuntu)
+				wsl --install
+				
+				※ 컴퓨터 재시작 필요
+				
+				# WSL 버전 확인
+				wsl --version
+				
+				# WSL 터미널 열기
+				wsl
+				
+					# 패키지 목록 업데이트
+					sudo apt update
+
+					# 설치된 패키지 업그레이드
+					sudo apt upgrade -y
+					
+				※ sudo 사용 시 
+					[sudo] password for winbit: 
+					같은 문구가 뜨고 비밀번호를 모를때
+					
+						# PowerShell에서 비밀번호 재설정
+						wsl -u root passwd winbit
+						
+					
+			◇ Node.js 설치(WSL 안에서)
+			
+				# 1. curl 설치 확인
+				sudo apt install -y curl
+
+				# 2. NodeSource GPG 키 및 저장소 추가
+				curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+
+				# 3. Node.js 설치
+				sudo apt install -y nodejs
+
+				# 4. 설치 확인
+				node --version
+				npm --version
+				
+			◇ Claude Code 설치(WSL 안에서)
+			
+				sudo npm install -g @anthropics/claude-code
+				
+				
+			◇ Github CLI 설치(WSL 안에서)
+			
+				# 1. GitHub CLI 저장소 키 추가
+				type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+				curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+				sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+
+				# 2. GitHub CLI 저장소 추가
+				echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+
+				# 3. 패키지 목록 업데이트
+				sudo apt update
+
+				# 4. GitHub CLI 설치
+				sudo apt install gh -y
+
+				# 5. 설치 확인
+				gh --version
+				
+			◇ tmux 설치
+				
+				# tmux 설치
+				sudo apt update
+				sudo apt install -y tmux
+
+				# 설치 확인
+				tmux -V
+			
+		◆ Claude squad
+		
+			#설치
+			curl -fsSL https://raw.githubusercontent.com/smtg-ai/claude-squad/main/install.sh | bash
+			※ 터미널 재실행 필요
+			
+			#설치 확인
+			# Claude Squad 실행
+			cs --help
+
+			# 또는 단순히
+			cs
+			
+========================================================================================================================================================================
+			
+	■ SuperClaude 설치
+	
+		※ WSL 에서 설치
+		사전준비 : WSL, Python, pip 설치, 
+		
+			# Python 3.8+ 및 pip
+			sudo apt update
+			sudo apt install -y python3 python3-pip python3-venv
+			python3 --version
+			pip3 --version
+			
+			#Claude code 설치
+				# Node.js 설치 (필요 시)
+				curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+				sudo apt install -y nodejs
+
+				# Claude Code 설치
+				npm install -g @anthropics/claude-code
+
+				# 확인
+				claude --version
+				
+			# apt로 pipx 설치 (권장!)
+			sudo apt update
+			sudo apt install -y pipx
+
+			# PATH에 추가
+			pipx ensurepath
+
+			# 터미널 재시작 또는
+			source ~/.bashrc
+
+			# 확인
+			pipx --version
+		
+		★ SuperClaude 설치
+		
+			WSL 에서 설치
+				# 1. pipx로 SuperClaude 패키지 설치
+				pipx install SuperClaude
+
+				# 2. superclaude 초기화 (Claude Code 설정)
+				superclaude install
+
+				# 3. MCP 서버 대화형 설치
+				superclaude mcp
+
+				# 4. 설치 확인
+				superclaude doctor
+			
+			▶ Windows에도 SuperClaude 설치
+				Windows PowerShell에서 직접 사용하고 싶다면:
+
+				# PowerShell에서 (관리자 권한 불필요)
+
+				# 1. Python 다운 및 설치
+					공식홈페이지에서 다운
+					※ 매우 중요: 설치 시 하단의 "Add python.exe to PATH" 체크박스를 반드시 체크하세요!
+					- 체크하지 않으면 PATH를 수동으로 설정해야 합니다
+					
+				# 확인
+				python --version
+
+				# 2. pip 업그레이드
+				python -m pip install --upgrade pip
+
+				# 3. SuperClaude 설치
+				pip install --user SuperClaude
+				또는
+				python -m pip install --user SuperClaude
+
+				# 4. 사용자 Scripts 폴더를 PATH에 추가 (필요시)
+				# 보통 자동으로 추가되지만, 안 될 경우:
+				# 시스템 환경 변수에서 PATH에 다음 추가:
+				# %APPDATA%\Python\Python312\Scripts
+					# 1. Scripts 폴더에 superclaude 실행 파일이 있는지 확인
+					Get-ChildItem -Path "C:\Users\Winbit\AppData\Local\Programs\Python\Python314\Scripts" | Select-String -Pattern "superclaude"
+
+					# 또는 이렇게
+					dir "C:\Users\Winbit\AppData\Local\Programs\Python\Python314\Scripts\superclaude*"
+
+					PATH에 Scripts 폴더 추가
+
+					# 1. Scripts 폴더 경로 설정
+					$scriptsPath = "C:\Users\Winbit\AppData\Local\Programs\Python\Python314\Scripts"
+
+					# 2. 현재 세션에 PATH 추가
+					$env:Path += ";$scriptsPath"
+
+					# 3. 영구적으로 사용자 환경 변수에 추가
+					[Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";$scriptsPath", "User")
+
+					# 4. 확인
+					echo $env:Path | Select-String -Pattern "Python314"
+
+				# 5. PowerShell 재시작 후 초기화
+				superclaude install
+
+				# 6. MCP 서버 수동 설치
+					# 1. Sequential Thinking (다단계 추론)
+					claude mcp add sequential-thinking npx @modelcontextprotocol/server-sequential-thinking
+
+					# 2. Context7 (공식 문서 조회)
+					claude mcp add context7 npx @context7/mcp-server
+
+					# 3. Chrome DevTools (브라우저 디버깅)
+					claude mcp add chrome-devtools npx chrome-devtools-mcp@latest
+
+					# 4. Serena (시맨틱 코드 분석) - uv 설치 필요
+						# 확인
+							uv --version
+						# 먼저 uv 설치(없다면):
+							powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+						# 그 다음 Serena 추가:
+							claude mcp add serena -- uvx --from git+https://github.com/oraios/serena serena start-mcp-server --context ide-assistant --project $PWD
+
+					# 5. Playwright
+							
+						# 1. Playwright 패키지 설치
+							npm install -g @playwright/test playwright
+
+						# 2. 브라우저 다운로드
+							npx playwright install
+
+						# 3. Claude MCP에 추가
+							claude mcp add playwright npx @playwright/mcp@latest
+						
+
+				# 7. 확인
+				superclaude --version
+				superclaude doctor
+
+
+		사용법
+		
+			SuperClaude 개요
+
+				SuperClaude는 Claude Code의 확장 명령어 시스템으로, /sc: 접두어로 시작하는 다양한 전문화된 명령어들을 제공합니다.
+
+				주요 명령어 카테고리
+
+				📊 분석 및 설계
+
+					- /sc:analyze - 코드 품질, 보안, 성능, 아키텍처 종합 분석
+					- /sc:design - 시스템 아키텍처, API, 컴포넌트 인터페이스 설계
+					- /sc:explain - 코드, 개념, 시스템 동작에 대한 명확한 설명
+					- /sc:spec-panel - 다중 전문가 관점의 스펙 리뷰 및 개선
+
+				🛠️ 개발 및 구현
+
+					- /sc:implement - 기능 및 코드 구현
+					- /sc:build - 프로젝트 빌드, 컴파일, 패키징
+					- /sc:test - 테스트 실행 및 커버리지 분석
+					- /sc:improve - 코드 품질, 성능, 유지보수성 개선
+					- /sc:cleanup - 코드 정리 및 최적화
+
+				📝 문서화 및 기획
+
+					- /sc:document - 컴포넌트, 함수, API 문서 생성
+					- /sc:brainstorm - 대화형 요구사항 탐색
+					- /sc:estimate - 개발 작업 예측 및 분석
+					- /sc:workflow - PRD에서 구조화된 구현 워크플로우 생성
+					- /sc:index - 프로젝트 문서 및 지식 베이스 생성
+
+				🔧 유틸리티
+
+					- /sc:git - Git 작업 및 커밋 메시지 최적화
+					- /sc:troubleshoot - 이슈 진단 및 해결
+					- /sc:task - 복잡한 작업의 워크플로우 관리
+					- /sc:save / /sc:load - 세션 컨텍스트 저장/로드
+
+				사용 방법
+
+					기본 사용법
+
+						/sc:명령어 "작업 설명"
+
+						예시
+
+						/sc:analyze src/components      # 컴포넌트 디렉토리 분석
+						/sc:implement "사용자 로그인 기능 추가"
+						/sc:document MyComponent.tsx    # 컴포넌트 문서화
+						/sc:git                        # Git 커밋 생성
+
+				플래그 시스템
+
+					명령어의 동작을 커스터마이징할 수 있는 플래그들:
+
+					분석 깊이 제어
+
+						- --think - 표준 분석 (~4K 토큰)
+						- --think-hard - 심층 분석 (~10K 토큰)
+						- --ultrathink - 최대 깊이 분석 (~32K 토큰)
+
+					MCP 서버 활성화
+
+						- --context7 - 문서 검색
+						- --sequential - 구조화된 추론
+						- --magic - UI 컴포넌트 생성
+						- --serena - 프로젝트 메모리
+
+					실행 제어
+
+						- --delegate - 병렬 처리 활성화
+						- --validate - 실행 전 검증
+						- --safe-mode - 안전 모드
+
+					예시
+
+						/sc:analyze --think-hard --context7 src/
+						/sc:implement --magic "대시보드 UI 추가"
+						/sc:build --safe-mode --validate
+
+				시작하기 좋은 명령어
+
+					1. 프로젝트 이해하기: /sc:index
+					2. 코드 분석하기: /sc:analyze src/
+					3. 기능 구현하기: /sc:implement "기능 설명"
+					4. 문제 해결하기: /sc:troubleshoot
