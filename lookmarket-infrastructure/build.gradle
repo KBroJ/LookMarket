@@ -1,6 +1,6 @@
 dependencies {
-    implementation project(':stylehub-common')
-    implementation project(':stylehub-domain')
+    implementation project(':lookmarket-common')
+    implementation project(':lookmarket-domain')
 
     // JPA & QueryDSL
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'

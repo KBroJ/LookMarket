@@ -1,5 +1,5 @@
 dependencies {
-    implementation project(':stylehub-common')
+    implementation project(':lookmarket-common')
 
     // JPA (for Entity annotations)
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'

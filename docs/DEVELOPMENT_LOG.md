@@ -452,7 +452,7 @@
 - **Git**: 버전 관리
 
 ### 참고 문서
-- [프로젝트 상세 스펙](./StyleHub_Project_Specification.md) - 4,362라인 상세 설계 문서
+- [프로젝트 상세 스펙](./LookMarket_Project_Specification.md) - 4,362라인 상세 설계 문서
 - [README.md](./README.md) - 프로젝트 소개 및 실행 가이드
 
 ### 다음 세션 시작 시 확인 사항

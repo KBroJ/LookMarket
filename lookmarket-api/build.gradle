@@ -1,8 +1,8 @@
 dependencies {
-    implementation project(':stylehub-common')
-    implementation project(':stylehub-domain')
-    implementation project(':stylehub-infrastructure')
-    implementation project(':stylehub-application')
+    implementation project(':lookmarket-common')
+    implementation project(':lookmarket-domain')
+    implementation project(':lookmarket-infrastructure')
+    implementation project(':lookmarket-application')
 
     // Spring Boot Web
     implementation 'org.springframework.boot:spring-boot-starter-web'

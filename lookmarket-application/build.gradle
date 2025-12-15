@@ -1,7 +1,7 @@
 dependencies {
-    implementation project(':stylehub-common')
-    implementation project(':stylehub-domain')
-    implementation project(':stylehub-infrastructure')
+    implementation project(':lookmarket-common')
+    implementation project(':lookmarket-domain')
+    implementation project(':lookmarket-infrastructure')
 
     // Spring Boot
     implementation 'org.springframework.boot:spring-boot-starter'
