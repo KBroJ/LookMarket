@@ -180,14 +180,43 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 ## 📝 개발 로드맵
 
-- [x] 프로젝트 초기 설정
-- [x] Docker Compose 환경 구성
-- [ ] Week 1: 기반 구축 (도메인 모델, 인증)
-- [ ] Week 2: 상품 관리 & 검색 (Elasticsearch)
-- [ ] Week 3: 재고 관리 & 주문 (동시성 제어)
-- [ ] Week 4: Kafka 이벤트 아키텍처 (Saga Pattern)
-- [ ] Week 5: 실시간 알림 & CDC
-- [ ] Week 6: Kafka Streams & 성능 최적화
+### 수직적 슬라이스 (Vertical Slice) 접근
+
+각 도메인을 Domain → Application → Infrastructure → API까지 완전히 구현하여 실제 동작하는 기능을 단계별로 완성합니다.
+
+- [x] **Phase 0**: 환경 검증 및 문서화 체계 확립
+  - Docker Compose 인프라 환경 검증
+  - Gradle 빌드 및 Spring Boot 구동 확인
+  - 문서 구조 재구성 (5개 카테고리)
+
+- [ ] **Phase 1**: User 도메인 수직적 슬라이스
+  - User 엔티티, UserRole/UserStatus enum
+  - 회원가입, 로그인, 프로필 관리 API
+  - JWT 인증/인가
+  - 단위/통합/E2E 테스트
+
+- [ ] **Phase 2**: Product 도메인 수직적 슬라이스
+  - Product 엔티티, 카테고리 계층 구조
+  - 상품 CRUD API
+  - Elasticsearch 검색 (Nori 분석기)
+  - Redis 캐싱
+
+- [ ] **Phase 3**: Order 도메인 수직적 슬라이스
+  - Order 엔티티, OrderItem, OrderStatus
+  - 주문 생성/조회/취소 API
+  - User-Product-Order 통합
+  - 낙관적 락 기반 재고 관리
+
+- [ ] **Phase 4**: Kafka 이벤트 아키텍처 통합
+  - Spring Event → Kafka 전환
+  - Saga Pattern (주문-결제-배송)
+  - CDC (MySQL → Elasticsearch 동기화)
+  - SSE 기반 실시간 알림
+
+- [ ] **Phase 5**: 프론트엔드 연동 & 최적화
+  - React 프론트엔드 통합
+  - Kafka Streams 실시간 통계
+  - 성능 최적화 및 모니터링
 
 ## 🤝 기여
 

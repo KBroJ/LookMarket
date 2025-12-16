@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir \"C:\\Devel\\think\\lookmarket\\lookmarket-api\\src\")"
+      "Bash(dir \"C:\\Devel\\think\\lookmarket\\lookmarket-api\\src\")",
+      "Bash(tree:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh auth login:*)",
+      "Bash(gh pr diff:*)",
+      "mcp__sequential-thinking__sequentialthinking"
     ]
   }
 }
