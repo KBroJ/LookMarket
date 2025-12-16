@@ -851,5 +851,293 @@
 
 ---
 
-**마지막 업데이트**: 2025-12-16 15:00 (월요일)
-**다음 작업 예정**: Phase 1 - User 도메인 구현 시작
+## 📅 2025-12-16 (월요일) - 저녁
+
+### ✅ 완료된 작업
+
+#### 1. 문서 구조 대대적 개편 (16:00 - 17:00)
+
+##### docs 폴더 3단계 구조화
+- [x] `docs/architecture/` - 아키텍처 원칙 및 강제 규칙
+  - ENFORCEMENT_RULES.md
+  - decisions/ (ADR)
+- [x] `docs/learning/` - 학습 자료 및 비교 분석
+  - Hexagonal-Architecture-Domain-구현-방식-비교.md (Loopers vs LookMarket)
+  - 멀티모듈-vs-폴더구분-비교분석.md
+  - DTO-vs-DomainEntity-vs-InfrastructureEntity-비교분석.md
+  - qna/ (질의응답 모음)
+- [x] `docs/guides/` - 실용 가이드 (How-to)
+  - 멀티모듈-설정-가이드.md
+  - Docker-Compose-설정-가이드.md
+- [x] CLAUDE.md 업데이트
+  - 문서 경로 업데이트 (docs/decisions/ → docs/architecture/decisions/)
+  - 참고 문서 섹션 재구성
+
+#### 2. Phase 1 - User 도메인 수직적 슬라이스 완성 (17:00 - 21:00)
+
+##### Domain Layer 완성
+- [x] User 엔티티 작성 (`lookmarket-domain/src/.../User.java`)
+  - Behavior-rich Entity 패턴 적용
+  - Static Factory Methods (create, reconstitute)
+  - 비즈니스 메서드 (changeEmail, changePassword, activate, suspend, deactivate)
+  - Validation 로직 내장
+- [x] UserRole enum (ADMIN, SELLER, CUSTOMER)
+- [x] UserStatus enum (ACTIVE, INACTIVE, SUSPENDED)
+- [x] UserRepository 인터페이스 (Domain Layer 포트)
+  - findById, findByEmail, existsByEmail, save
+
+##### Infrastructure Layer 완성
+- [x] Flyway 마이그레이션 스크립트
+  - V1__create_users_table.sql
+  - users 테이블 생성 (id, email, password, name, phone_number, role, status, created_at, updated_at)
+- [x] UserEntity (JPA 엔티티)
+  - @Entity, @Table, @Id, @GeneratedValue
+  - BaseEntity 상속 (createdAt, updatedAt)
+  - User 도메인 객체와 분리
+- [x] JpaUserRepository 구현
+  - UserRepository 포트 구현
+  - fromDomain / toDomain 변환 메서드
+  - Spring Data JPA 활용
+
+##### Application Layer 완성
+- [x] UserService 작성 (`lookmarket-application/src/.../UserService.java`)
+  - register (회원가입, 이메일 중복 체크, 비밀번호 암호화)
+  - getUserById, getUserByEmail (조회)
+  - changeEmail (이메일 변경, 중복 체크)
+  - changePassword (비밀번호 변경, 현재 비밀번호 검증)
+  - activateUser, suspendUser, deactivateUser (상태 관리)
+- [x] Spring Security 의존성 추가
+  - PasswordEncoder (BCrypt) 사용
+
+##### API Layer 완성
+- [x] UserController (`lookmarket-api/src/.../UserController.java`)
+  - POST /api/v1/users - 회원가입
+  - GET /api/v1/users/{userId} - 사용자 조회
+  - PATCH /api/v1/users/{userId}/email - 이메일 변경
+  - PATCH /api/v1/users/{userId}/password - 비밀번호 변경
+  - POST /api/v1/users/{userId}/activate - 계정 활성화
+  - POST /api/v1/users/{userId}/suspend - 계정 정지
+  - POST /api/v1/users/{userId}/deactivate - 계정 비활성화
+- [x] DTO 작성
+  - UserRequest (회원가입 요청, @Valid 검증)
+  - UserResponse (응답, from() 정적 팩토리 메서드)
+  - ChangeEmailRequest
+  - ChangePasswordRequest
+
+##### phoneNumber 기능 추가
+- [x] User 도메인에 phoneNumber 필드 추가
+- [x] UserService.register()에 phoneNumber 파라미터 추가
+- [x] UserRequest에 phoneNumber 필드 추가 (한국 휴대폰 번호 패턴 검증)
+- [x] UserResponse에 phoneNumber 필드 추가
+
+#### 3. 테스트 코드 작성 (20:00 - 21:00)
+
+##### Domain Layer 단위 테스트
+- [x] UserTest.java (25개 테스트)
+  - User.create() 성공/실패 케이스 (7개)
+  - changeEmail() 테스트 (3개)
+  - changePassword() 테스트 (2개)
+  - changeName(), changePhoneNumber() 테스트 (2개)
+  - 상태 전환 테스트 (activate, deactivate, suspend) (4개)
+  - 권한 확인 테스트 (isAdmin, isSeller) (5개)
+  - reconstitute() 테스트 (1개)
+  - **결과**: 25개 테스트 모두 통과 ✅
+
+##### Application Layer 단위 테스트
+- [x] UserServiceTest.java (13개 테스트, Mockito 사용)
+  - register() 성공/실패 (이메일 중복) (2개)
+  - getUserById(), getUserByEmail() (3개)
+  - changeEmail() 성공/실패 (사용자 없음, 이메일 중복) (3개)
+  - changePassword() 성공/실패 (현재 비밀번호 불일치) (2개)
+  - activateUser(), suspendUser(), deactivateUser() (3개)
+  - **결과**: 13개 테스트 모두 통과 ✅
+
+##### 전체 빌드 테스트
+- [x] `./gradlew clean build` 성공
+  - 컴파일 성공
+  - 단위 테스트 38개 모두 통과
+  - JAR 파일 생성 완료
+
+### 🔧 기술적 결정
+
+#### 1. phoneNumber null 처리 방식
+- **상황**: UserService.register()에서 phoneNumber를 null로 하드코딩
+- **문제**: 사용자가 전화번호를 입력할 수 없음
+- **결정**: phoneNumber를 파라미터로 받도록 수정
+- **이유**:
+  - 사용자 입력을 받아야 함
+  - DTO, Service, Controller 모두 일관되게 처리
+  - null 허용 (선택 필드)
+- **수정 범위**:
+  - UserService.register() 파라미터 추가
+  - UserRequest에 phoneNumber 필드 추가
+  - UserResponse에 phoneNumber 필드 추가
+  - UserController에서 phoneNumber 전달
+
+#### 2. 테스트 작성 시점 결정
+- **상황**: 커밋 전에 빌드 에러 발생 가능성
+- **결정**: 커밋 전 단위 테스트 작성
+- **이유**:
+  - TDD 방식으로 빌드 에러 조기 발견
+  - "테스트 없는 커밋 금지" 원칙 준수
+  - 비즈니스 로직 검증
+- **작성 순서**:
+  1. Domain Layer 테스트 (프레임워크 의존 없음, 빠름)
+  2. Application Layer 테스트 (Mock 사용)
+  3. 전체 빌드 검증
+
+#### 3. 테스트 실패 해결
+- **문제**: UserServiceTest.changePassword_Success() 실패
+  - Mockito verify 시 testUser.getPassword()가 이미 변경된 상태
+- **원인**: Domain 객체의 메서드 호출로 상태 변경됨
+- **해결**: 원래 비밀번호를 미리 저장 후 verify
+  ```java
+  String originalPassword = testUser.getPassword();
+  given(passwordEncoder.matches(currentPassword, originalPassword)).willReturn(true);
+  ```
+- **학습**: Mock 검증 시 객체 상태 변경에 주의
+
+### 📚 학습 내용
+
+#### 1. DTO vs Domain Entity vs Infrastructure Entity 차이
+- **Domain Entity (User.java)**:
+  - 순수 비즈니스 로직
+  - 프레임워크 의존 없음
+  - Behavior-rich (행위 중심)
+  - 불변식 보장
+- **Infrastructure Entity (UserEntity.java)**:
+  - JPA 매핑 (@Entity, @Table)
+  - 데이터베이스 접근
+  - Domain Entity와 변환 (fromDomain, toDomain)
+- **DTO (UserRequest, UserResponse)**:
+  - API 요청/응답
+  - Validation 포함 (@Valid)
+  - Domain 객체 직접 노출 방지
+- **학습 문서 작성**: `docs/learning/DTO-vs-DomainEntity-vs-InfrastructureEntity-비교분석.md`
+
+#### 2. Behavior-rich Entity vs Anemic Domain Model
+- **Behavior-rich Entity** (LookMarket 방식):
+  - 메서드: `user.changeEmail(newEmail)` ✅
+  - 장점: 비즈니스 로직 캡슐화, 불변식 보장
+- **Anemic Domain Model**:
+  - Setter: `user.setEmail(email)` ❌
+  - 단점: 비즈니스 로직이 Service로 분산, 불변식 깨지기 쉬움
+
+#### 3. 테스트 작성 패턴
+- **Domain Layer**: 순수 Java 테스트 (JUnit 5 + AssertJ)
+  - 빠른 실행 속도
+  - 의존성 없음
+- **Application Layer**: Mock 테스트 (Mockito)
+  - 의존성 격리
+  - given-when-then 패턴
+  - verify로 상호작용 검증
+
+#### 4. phoneNumber 파라미터 누락 경험
+- **문제**: null 하드코딩으로 사용자 입력 불가
+- **교훈**:
+  - 도메인 엔티티 설계 시 모든 필드 고려
+  - Service → DTO → Controller까지 일관되게 처리
+  - 선택 필드는 null 허용하되, 받을 수 있도록 구현
+
+### 🐛 문제 및 해결
+
+#### 문제 1: phoneNumber 파라미터 누락
+- **문제**: UserService.register()에서 phoneNumber를 null로 하드코딩
+- **증상**: 빌드 에러 (User.create() 파라미터 개수 불일치)
+- **원인**: User.create()는 5개 파라미터, Service는 4개만 전달
+- **해결**:
+  - UserService.register()에 phoneNumber 파라미터 추가
+  - UserRequest에 phoneNumber 필드 추가 (패턴 검증)
+  - UserController에서 phoneNumber 전달
+  - UserResponse에 phoneNumber 필드 추가
+- **소요 시간**: 약 15분
+
+#### 문제 2: UserServiceTest.changePassword_Success() 실패
+- **문제**: Mockito verify 실패 (WantedButNotInvoked)
+- **증상**:
+  ```
+  Wanted: passwordEncoder.matches("currentPassword", "encodedNewPassword123")
+  Actual: passwordEncoder.matches("currentPassword", "encodedPassword")
+  ```
+- **원인**: verify 시점에 testUser.getPassword()가 이미 변경됨
+- **해결**: 원래 비밀번호를 미리 저장 후 verify 시 사용
+  ```java
+  String originalPassword = testUser.getPassword();
+  given(passwordEncoder.matches(currentPassword, originalPassword)).willReturn(true);
+  ```
+- **소요 시간**: 약 10분
+
+### 📊 작업 통계
+
+#### 코드 라인 수
+- **Domain Layer**:
+  - User.java: 274줄
+  - UserRole.java: 11줄
+  - UserStatus.java: 9줄
+  - UserRepository.java: 16줄
+  - **소계**: 310줄
+
+- **Infrastructure Layer**:
+  - UserEntity.java: 145줄
+  - JpaUserRepository.java: 91줄
+  - V1__create_users_table.sql: 14줄
+  - **소계**: 250줄
+
+- **Application Layer**:
+  - UserService.java: 187줄
+  - **소계**: 187줄
+
+- **API Layer**:
+  - UserController.java: 123줄
+  - UserRequest.java: 32줄
+  - UserResponse.java: 40줄
+  - ChangeEmailRequest.java: 18줄
+  - ChangePasswordRequest.java: 18줄
+  - **소계**: 231줄
+
+- **Tests**:
+  - UserTest.java: 344줄 (25개 테스트)
+  - UserServiceTest.java: 291줄 (13개 테스트)
+  - **소계**: 635줄
+
+- **문서**:
+  - DTO-vs-DomainEntity-vs-InfrastructureEntity-비교분석.md: 450줄
+  - 멀티모듈-vs-폴더구분-비교분석.md: 300줄
+  - 멀티모듈-설정-가이드.md: 250줄
+  - **소계**: 1,000줄
+
+**전체 합계**: 약 2,613줄 (코드 1,613줄 + 문서 1,000줄)
+
+#### 테스트 통계
+- **Domain Layer**: 25개 테스트 ✅
+- **Application Layer**: 13개 테스트 ✅
+- **전체**: 38개 테스트, 0 실패
+- **빌드 시간**: 19초
+
+### 📋 다음 작업 계획
+
+#### 문서화 작업
+- [ ] DEVELOPMENT_LOG.md 업데이트 (현재 진행 중)
+- [ ] docs/README.md 업데이트 (새 문서 반영)
+
+#### 커밋 및 PR
+- [ ] 커밋 1: 문서 구조 개편
+  - CLAUDE.md
+  - docs/ (architecture, learning, guides)
+- [ ] 커밋 2: User 도메인 수직적 슬라이스 구현
+  - Domain, Infrastructure, Application, API Layer
+  - 단위 테스트 38개
+  - Spring Security 의존성
+  - phoneNumber 기능
+- [ ] PR 생성: "feat: Implement User domain vertical slice"
+
+#### Spring Security & JWT 설정
+- [ ] SecurityConfig 작성 (최소 설정)
+- [ ] JWT 토큰 발급/검증 구현
+- [ ] JwtAuthenticationFilter
+- [ ] 로그인 API
+
+---
+
+**마지막 업데이트**: 2025-12-16 21:00 (월요일)
+**다음 작업 예정**: 문서 업데이트 완료 → 커밋 → PR 생성
