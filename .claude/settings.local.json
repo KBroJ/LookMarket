@@ -6,7 +6,30 @@
       "Bash(gh pr list:*)",
       "Bash(gh auth login:*)",
       "Bash(gh pr diff:*)",
-      "mcp__sequential-thinking__sequentialthinking"
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(claude mcp list:*)",
+      "Bash(uv:*)",
+      "WebSearch",
+      "Bash(dir /s /b \"C:\\Users\\KHJ\\.claude\\*.json\")",
+      "Bash(findstr:*)",
+      "Bash(where claude)",
+      "Bash(claude mcp add-json:*)",
+      "Bash(dir:*)",
+      "Bash(./gradlew test:*)",
+      "Bash(gh pr view:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import json,sys,re; data=json.load(sys.stdin); cmd=data.get('tool_input',{}).get('command',''); sys.exit(2) if re.search(r'git push.*(origin\\s+main|main)', cmd) else sys.exit(0)\" 2>/dev/null || exit 0"
+          }
+        ]
+      }
     ]
   }
 }
