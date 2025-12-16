@@ -1,4 +1,4 @@
-# StyleHub - 패션 통합 커머스 플랫폼
+# LookMarket - 패션 통합 커머스 플랫폼
 
 > 백엔드 개발자 포트폴리오 프로젝트 (경력직 대상)
 > **타겟 기업:** 무신사, 29CM, 카카오스타일, 토스 등 커머스/핀테크 기업
@@ -240,7 +240,7 @@ public class OrderSagaOrchestrator {
 }
 
 // Pattern 2: CDC (Change Data Capture) - Elasticsearch 자동 동기화
-@KafkaListener(topics = "mysql.stylehub.products", groupId = "elasticsearch-sync")
+@KafkaListener(topics = "mysql.lookmarket.products", groupId = "elasticsearch-sync")
 public void handleProductChange(DebeziumChangeEvent event) {
     switch (event.getOperation()) {
         case CREATE, UPDATE -> {
@@ -958,26 +958,26 @@ Testing:
 ### 모듈 구조 (멀티 모듈)
 
 ```
-stylehub/
-├── stylehub-api/              # REST API (Presentation Layer)
+lookmarket/
+├── lookmarket-api/              # REST API (Presentation Layer)
 │   ├── src/main/java/
-│   │   └── com/stylehub/api/
+│   │   └── com/lookmarket/api/
 │   │       ├── controller/
 │   │       ├── dto/
 │   │       └── config/
 │   └── build.gradle
 │
-├── stylehub-application/      # Application Service
+├── lookmarket-application/      # Application Service
 │   ├── src/main/java/
-│   │   └── com/stylehub/application/
+│   │   └── com/lookmarket/application/
 │   │       ├── service/
 │   │       ├── facade/
 │   │       └── usecase/
 │   └── build.gradle
 │
-├── stylehub-domain/           # Domain Model (핵심 비즈니스 로직)
+├── lookmarket-domain/           # Domain Model (핵심 비즈니스 로직)
 │   ├── src/main/java/
-│   │   └── com/stylehub/domain/
+│   │   └── com/lookmarket/domain/
 │   │       ├── product/
 │   │       ├── order/
 │   │       ├── inventory/
@@ -985,22 +985,22 @@ stylehub/
 │   │       └── common/
 │   └── build.gradle
 │
-├── stylehub-infrastructure/   # 외부 연동
+├── lookmarket-infrastructure/   # 외부 연동
 │   ├── src/main/java/
-│   │   └── com/stylehub/infrastructure/
+│   │   └── com/lookmarket/infrastructure/
 │   │       ├── persistence/   # JPA, QueryDSL
 │   │       ├── messaging/     # Kafka
 │   │       ├── cache/         # Redis
 │   │       └── search/        # Elasticsearch
 │   └── build.gradle
 │
-├── stylehub-batch/            # Spring Batch
+├── lookmarket-batch/            # Spring Batch
 │   └── build.gradle
 │
-├── stylehub-common/           # 공통 유틸리티
+├── lookmarket-common/           # 공통 유틸리티
 │   └── build.gradle
 │
-├── stylehub-frontend/         # React Frontend
+├── lookmarket-frontend/         # React Frontend
 │   ├── src/
 │   │   ├── components/
 │   │   ├── pages/
@@ -1938,10 +1938,10 @@ services:
     "database.password": "dbz",
     "database.server.id": "184054",
     "database.server.name": "mysql",
-    "database.include.list": "stylehub",
-    "table.include.list": "stylehub.products,stylehub.brands,stylehub.categories",
+    "database.include.list": "lookmarket",
+    "table.include.list": "lookmarket.products,lookmarket.brands,lookmarket.categories",
     "database.history.kafka.bootstrap.servers": "kafka:9092",
-    "database.history.kafka.topic": "schema-changes.stylehub",
+    "database.history.kafka.topic": "schema-changes.lookmarket",
     "include.schema.changes": "false",
     "topic.prefix": "mysql",
     "transforms": "route",
@@ -1966,7 +1966,7 @@ public class ProductIndexSyncService {
     /**
      * CDC 이벤트 처리: products 테이블 변경
      */
-    @KafkaListener(topics = "mysql.stylehub.products",
+    @KafkaListener(topics = "mysql.lookmarket.products",
                    groupId = "elasticsearch-sync")
     public void handleProductChange(DebeziumChangeEvent event) {
 
@@ -2956,7 +2956,7 @@ Response 200 OK
 ### 프로젝트 구조
 
 ```
-stylehub-frontend/
+lookmarket-frontend/
 ├── src/
 │   ├── components/
 │   │   ├── common/
@@ -3562,8 +3562,8 @@ public class RedisLockService {
     "connector.class": "io.debezium.connector.mysql.MySqlConnector",
     "database.hostname": "mysql",
     "database.port": "3306",
-    "table.include.list": "stylehub.products",
-    "database.history.kafka.topic": "schema-changes.stylehub"
+    "table.include.list": "lookmarket.products",
+    "database.history.kafka.topic": "schema-changes.lookmarket"
   }
 }
 ```
@@ -4055,7 +4055,7 @@ class OrderIntegrationTest {
 
     @Container
     static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-        .withDatabaseName("stylehub_test");
+        .withDatabaseName("lookmarket_test");
 
     @Container
     static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine")
@@ -4241,7 +4241,7 @@ management:
         include: health,metrics,prometheus
   metrics:
     tags:
-      application: stylehub
+      application: lookmarket
     export:
       prometheus:
         enabled: true
@@ -4294,7 +4294,7 @@ public class ProductController {
 
 ```bash
 # 멀티 모듈 프로젝트 생성
-mkdir stylehub && cd stylehub
+mkdir lookmarket && cd lookmarket
 gradle init --type java-application --dsl kotlin
 
 # Docker Compose 환경 구성
