@@ -8,6 +8,24 @@ LookMarket은 Java 21과 Spring Boot 3.3.x 기반의 멀티 브랜드 패션/뷰
 
 **핵심 기술 스택**: Java 21 (Virtual Threads), Spring Boot 3.3.x, MySQL 8.0, Redis 7.x, Elasticsearch 8.x, Apache Kafka 3.6.x, QueryDSL 5.x, React 18 + TypeScript
 
+## 구현 전략 및 현재 상태
+
+### 개발 방식
+- **수직적 슬라이스 (Vertical Slice)** 접근: 각 도메인을 Domain → Application → Infrastructure → API까지 완전히 구현
+- **이벤트 처리**: Phase 1-3은 Spring Event 사용, Phase 4에서 Kafka로 전환
+
+### 현재 진행 상황
+- **완료**: Phase 0 (환경 검증 및 문서화)
+- **진행 중**: Phase 1 준비 (User 도메인 수직적 슬라이스)
+- **다음 단계**: User 도메인 완전 구현 (Domain/Infrastructure/Application/API Layer + Tests)
+
+### Phase별 로드맵
+- **Phase 1** (Week 1-2): User 도메인 (회원가입, 로그인, 프로필 관리)
+- **Phase 2** (Week 3-4): Product 도메인 (상품 CRUD, Elasticsearch 검색)
+- **Phase 3** (Week 5-6): Order 도메인 (주문 생성/조회/취소, 재고 관리)
+- **Phase 4** (Week 7): Kafka 이벤트 통합 (Saga, CDC, SSE)
+- **Phase 5** (Week 8): 프론트엔드 연동 & 최적화
+
 ## 아키텍처
 
 ### Hexagonal Architecture (포트 & 어댑터)
@@ -54,6 +72,73 @@ lookmarket/
 - Spring Security 설정 (JWT 인증)
 - Swagger/OpenAPI 문서
 - 예외 핸들러
+
+---
+
+## 아키텍처 강제 규칙 (Architecture Enforcement Rules)
+
+> **중요**: 이 규칙들은 반드시 준수해야 하는 **강제 제약사항**입니다.
+>
+> **상세 예시 및 설명**: [docs/architecture/ENFORCEMENT_RULES.md](docs/architecture/ENFORCEMENT_RULES.md)
+
+### 핵심 원칙
+
+| 규칙 | 설명 | 예시 |
+|------|------|------|
+| **Domain 독립성** | Domain은 어떤 레이어/프레임워크에도 의존하지 않음 | ✅ 순수 Java / ❌ import javax.persistence.* |
+| **의존성 방향** | Infrastructure → Domain, API → Application → Domain | ✅ Hexagonal Architecture / ❌ Domain → Infrastructure |
+| **레이어 격리** | 각 레이어는 정해진 책임만 가짐 | ✅ Domain = 비즈니스 로직 / ❌ Domain에 @Transactional |
+
+### A. Domain Model 규칙
+
+| 규칙 | 설명 | 허용 (✅) | 금지 (❌) |
+|------|------|----------|----------|
+| **Behavior-rich Entities** | 엔티티는 행위(Behavior)를 가져야 함 | `user.changeEmail(newEmail)` | `user.setEmail(email)` |
+| **Aggregate References** | 애그리게이트 간 참조는 ID만 | `Order(userId, productId)` | `Order(User user, Product product)` |
+| **Value Object Immutability** | Value Object는 불변 | `record Money(BigDecimal amount)` | `money.setAmount(100)` |
+| **Domain Event in Domain** | 도메인 이벤트는 Domain 레이어에 정의 | `domain/UserCreatedEvent` | `infrastructure/UserCreatedEvent` |
+
+### B. Ports & Adapters 규칙
+
+| 규칙 | 설명 | 허용 (✅) | 금지 (❌) |
+|------|------|----------|----------|
+| **Repository Interface** | Repository 인터페이스는 Domain에 | `domain/UserRepository.java` | `infrastructure/UserRepository.java` |
+| **Repository Implementation** | Repository 구현체는 Infrastructure에 | `infrastructure/JpaUserRepository` | `domain/JpaUserRepository` |
+| **No Direct JPA in Domain** | Domain에서 Spring Data JPA 직접 사용 금지 | `UserRepository { User save(); }` | `UserRepository extends JpaRepository` |
+
+### C. Service Layer 규칙
+
+| 규칙 | 설명 | 허용 (✅) | 금지 (❌) |
+|------|------|----------|----------|
+| **Orchestration Only** | Application Service는 오케스트레이션만 | `user.changeEmail()` 호출 | Service에서 직접 validation |
+| **Transaction Boundary** | 트랜잭션은 Application 레이어에만 | `@Transactional` in Service | `@Transactional` in Domain |
+| **Return Domain Objects** | Service는 Domain 객체 반환 | `User getUser()` | `UserResponse getUser()` (DTO는 API에서) |
+
+### D. Dependency Inversion 규칙
+
+| 규칙 | 설명 | 허용 (✅) | 금지 (❌) |
+|------|------|----------|----------|
+| **Infrastructure → Domain** | Infrastructure가 Domain에 의존 | `import com.lookmarket.domain.*` | `domain에서 import javax.persistence.*` |
+| **API → Application** | API가 Application에 의존 | `import com.lookmarket.application.*` | `import com.lookmarket.infrastructure.*` |
+| **DTO Conversion** | API에서 Domain 직접 노출 금지 | `UserResponse.from(user)` | `return user` (Domain 객체) |
+
+---
+
+## 코드 품질 규칙
+
+> **상세 가이드**: [docs/architecture/ENFORCEMENT_RULES.md](docs/architecture/ENFORCEMENT_RULES.md)
+
+| 카테고리 | 규칙 | 기준 |
+|---------|------|------|
+| **네이밍** | 명확하고 의미 있는 이름 | 메서드: `getUser`, `createOrder` / 변수: `userId`, `orderItems` |
+| **크기 제한** | 클래스/메서드 길이 제한 | 클래스 300줄, 메서드 50줄, 파라미터 3개 이내 |
+| **복잡도** | Cyclomatic Complexity 제한 | 10 이하 (복잡한 로직은 메서드 분리) |
+| **주석** | 복잡한 비즈니스 로직에만 작성 | "왜(Why)"를 설명, "무엇(What)"은 코드로 |
+| **매직 넘버** | 하드코딩 금지 | 상수로 정의 또는 설정 파일 사용 |
+| **Null 처리** | Null 반환 금지 | `Optional` 사용 또는 예외 발생 |
+| **로깅** | 민감 정보 로깅 금지 | 비밀번호, 카드번호 마스킹 처리 |
+
+---
 
 ## 주요 개발 명령어
 
@@ -430,7 +515,110 @@ public abstract class IntegrationTestBase {
 
 ## 개발 워크플로우
 
-### 새 기능 추가
+### 개발 접근 방식: 수직적 슬라이스 (Vertical Slice)
+
+이 프로젝트는 **수평적 레이어 구현** 대신 **수직적 슬라이스** 방식을 채택합니다.
+
+#### 수직적 슬라이스란?
+
+**정의**: 한 도메인(예: User)의 전체 레이어를 Domain → Application → Infrastructure → API까지 완전히 구현하는 방식
+
+**수평적 접근 vs 수직적 슬라이스**:
+
+| 구분 | 수평적 접근 (Horizontal) | 수직적 슬라이스 (Vertical) |
+|------|-------------------------|--------------------------|
+| 진행 방식 | Week 1: 모든 도메인 엔티티<br>Week 2: 모든 Repository<br>Week 3: 모든 Service | Week 1-2: User 전체 레이어<br>Week 3-4: Product 전체 레이어<br>Week 5-6: Order 전체 레이어 |
+| 검증 시점 | 모든 레이어 완성 후 | 각 도메인 완성 시점마다 |
+| 학습 효과 | 레이어별 집중 | 전체 흐름 이해 |
+| 테스트 | 후반부에 통합 테스트 | 각 슬라이스마다 E2E 테스트 |
+
+#### 왜 수직적 슬라이스를 선택했는가?
+
+**1. 조기 검증**
+- User 도메인 완성 후 실제 API 테스트 가능
+- 설계 문제를 조기에 발견하여 다른 도메인에 적용 전 수정
+- 예: User에서 N+1 문제 발견 → Product, Order에는 처음부터 올바른 패턴 적용
+
+**2. 학습 효과 (개인 프로젝트 특화)**
+- 전체 아키텍처 흐름을 한 사이클로 경험
+- Domain → Application → Infrastructure → API의 의존성 방향 체득
+- 첫 번째 슬라이스(User)에서 패턴 확립 → 이후 슬라이스에서 재사용
+
+**3. 명확한 진척도**
+- User 완료 → Product 완료 → Order 완료로 명확한 성취감
+- 각 단계마다 "동작하는 소프트웨어" 결과물
+- 포트폴리오 시연 시 단계별 진행 상황 명확히 설명 가능
+
+**4. 테스트 용이성**
+- 각 도메인마다 단위 → 통합 → E2E 테스트 작성
+- Postman이나 프론트엔드로 실제 동작 확인
+- 테스트 패턴을 첫 슬라이스에서 확립 후 재사용
+
+**5. 리스크 감소**
+- 도메인 간 의존성 순서로 구현 (User → Product → Order)
+- 각 슬라이스 완료 시점에 통합 이슈 해결
+- 후반부 도메인은 앞선 슬라이스의 검증된 패턴 활용
+
+#### Hexagonal Architecture와의 호환성
+
+Hexagonal Architecture는 **레이어 분리**를 강조하지 **구현 순서**를 강제하지 않습니다.
+
+- 핵심 원칙: **의존성 방향** (Domain ← Infrastructure, API → Application → Domain)
+- Walking Skeleton 방법론과 일치: 한 기능을 end-to-end로 먼저 구현 (얇게) → 점진적으로 확장
+- 수직적 슬라이스로 구현하더라도 각 레이어의 의존성 방향만 지키면 아키텍처 원칙 준수
+
+#### 구현 순서
+
+**Phase 1: User 도메인 (Week 1-2)**
+```
+User 수직적 슬라이스
+├── Domain Layer: User 엔티티, UserRole/UserStatus enum, UserCreatedEvent
+├── Application Layer: UserService (회원가입, 로그인, 프로필 수정)
+├── Infrastructure Layer: UserJpaRepository, UserEntity, UserAdapter
+├── API Layer: UserController (REST API)
+└── Tests: 단위/통합/E2E 테스트
+```
+
+**Phase 2: Product 도메인 (Week 3-4)**
+```
+Product 수직적 슬라이스
+├── Domain Layer: Product 엔티티, ProductStatus, Category
+├── Application Layer: ProductService (CRUD, 검색)
+├── Infrastructure Layer: ProductJpaRepository, Elasticsearch
+├── API Layer: ProductController
+└── Tests
+```
+
+**Phase 3: Order 도메인 (Week 5-6)**
+```
+Order 수직적 슬라이스
+├── Domain Layer: Order 엔티티, OrderItem, OrderStatus
+├── Application Layer: OrderService (주문 생성/조회/취소)
+├── Infrastructure Layer: OrderJpaRepository
+├── API Layer: OrderController
+└── Tests
+```
+
+**Phase 4: Kafka 이벤트 통합 (Week 7)**
+- Spring Event → Kafka로 전환
+- Saga Pattern, CDC, SSE 구현
+
+**Phase 5: 프론트엔드 연동 (Week 8)**
+- React 통합
+
+#### 이벤트 처리 전략
+
+**Phase 1-3: Spring Event 사용**
+- 도메인 이벤트를 메모리 내에서 발행/소비 (`@EventListener`)
+- Kafka 복잡도 없이 이벤트 기반 패턴 학습
+- 장점: 간단하고 빠른 검증, 도메인 이벤트 개념 익히기 좋음
+
+**Phase 4: Kafka 전환**
+- Spring Event → Kafka 토픽으로 전환
+- 세 도메인이 모두 완성되어 이벤트 구독자 구현 가능
+- Saga Pattern, CDC 등 고급 패턴 적용
+
+### 새 기능 추가 (수직적 슬라이스 방식)
 
 1. **Domain First**: `lookmarket-domain`에서 엔티티, 값 객체, 비즈니스 규칙 정의
 2. **Repository 인터페이스**: domain 레이어에서 repository 포트 정의
@@ -438,6 +626,116 @@ public abstract class IntegrationTestBase {
 4. **Application Service**: `lookmarket-application`에서 유즈케이스 오케스트레이션 생성
 5. **API Layer**: `lookmarket-api`에 컨트롤러 및 DTO 추가
 6. **Tests**: 단위 테스트(domain), 통합 테스트(infrastructure), API 테스트(REST Assured) 작성
+
+**중요**: 각 단계를 순차적으로 완료하되, 한 도메인의 전체 레이어를 완성한 후 다음 도메인으로 이동합니다.
+
+---
+
+### 기능 개발 프로세스 (구현 → 테스트 → 커밋 → PR)
+
+> **핵심 원칙**: **테스트 없는 커밋 금지, 빌드 실패 상태 커밋 금지**
+
+#### 수직적 슬라이스 개발 순서
+
+| 단계 | 작업 내용 | 커밋 단위 |
+|------|---------|---------|
+| **1. Domain** | 엔티티, Repository 인터페이스, 단위 테스트 | `feat(domain): Add User entity and repository interface` |
+| **2. Infrastructure** | JPA 구현체, Flyway 마이그레이션, 통합 테스트 | `feat(infrastructure): Implement JPA UserRepository with Flyway migration` |
+| **3. Application** | Application Service, 통합 테스트 | `feat(application): Add user registration and login service` |
+| **4. API** | Controller, DTO, E2E 테스트 | `feat(api): Add user registration and login endpoints` |
+| **5. PR 생성** | 전체 수직적 슬라이스 완성 후 PR 생성 | `feat: Implement user registration feature` |
+
+**각 단계마다 반드시**:
+1. 코드 작성
+2. 테스트 작성
+3. `./gradlew :모듈명:test` 실행 및 통과 확인
+4. `git commit` (Conventional Commits 형식)
+
+---
+
+### 커밋 규칙 (Commit Convention)
+
+#### Atomic Commit 원칙
+
+**1커밋 = 1레이어 완성 + 해당 테스트**
+
+| Type | Scope | 예시 |
+|------|-------|------|
+| `feat` | `domain`, `infrastructure`, `application`, `api` | `feat(domain): Add User entity and value objects` |
+| `fix` | `domain`, `infrastructure`, `application`, `api` | `fix(api): Resolve validation error in UserController` |
+| `refactor` | `domain`, `infrastructure`, `application`, `api` | `refactor(application): Extract user validation logic` |
+| `test` | `domain`, `infrastructure`, `application`, `api` | `test(domain): Add edge cases for User entity` |
+| `docs` | - | `docs: Update DEVELOPMENT_LOG with Phase 1 progress` |
+| `chore` | - | `chore: Update Gradle dependencies` |
+
+#### 커밋 전 체크리스트
+
+- [ ] `./gradlew build` 성공
+- [ ] `./gradlew :모듈명:test` 통과
+- [ ] 불필요한 코드 제거 (주석, import 정리)
+- [ ] 아키텍처 규칙 준수 확인
+
+**테스트 실패 시**: 수정 후 통과해야만 커밋 (절대 WIP 커밋 금지)
+
+---
+
+### PR (Pull Request) 생성 및 리뷰 규칙
+
+#### PR 생성 시점 및 크기
+
+| 항목 | 기준 |
+|------|------|
+| **생성 시점** | 수직적 슬라이스 완성 (Domain + Infrastructure + Application + API + Tests) |
+| **적정 크기** | 300~500 라인 (테스트 포함) |
+| **최대 크기** | 1,000 라인 (초과 시 분할 고려) |
+
+#### PR 제목 및 본문
+
+**제목**: Conventional Commits 형식
+```
+feat: Implement user registration feature
+```
+
+**본문**: PR 템플릿 사용
+```markdown
+## Summary
+User 도메인 구현: 회원가입, 로그인 기능
+
+## Changes
+- Domain: User 엔티티, UserRepository 인터페이스
+- Infrastructure: JPA UserRepository 구현, Flyway 마이그레이션
+- Application: UserService
+- API: UserController
+
+## Test Plan
+- [x] 모든 테스트 통과: ./gradlew test
+
+## Self-Review Checklist
+- [x] 아키텍처 규칙 준수
+- [x] 코드 품질 규칙 준수
+- [x] 테스트 커버리지 달성
+- [x] DEVELOPMENT_LOG.md 업데이트
+```
+
+#### 셀프 리뷰 체크리스트 (간소화)
+
+| 카테고리 | 확인 항목 |
+|---------|---------|
+| **아키텍처** | Domain 독립성, 의존성 방향, 레이어별 import 규칙 준수 |
+| **코드 품질** | 네이밍, 크기 제한, 복잡도, DRY 원칙 |
+| **테스트** | 단위/통합/E2E 테스트 작성 완료, 모든 테스트 통과 |
+| **보안** | SQL Injection, XSS, 비밀번호 암호화, 민감 정보 로깅 금지 |
+| **문서** | DEVELOPMENT_LOG.md 업데이트, API 문서 (필요 시) |
+
+#### PR 머지 후
+
+```bash
+git checkout main && git pull origin main
+git branch -d feature/user-registration
+git push origin --delete feature/user-registration
+```
+
+---
 
 ### 데이터베이스 스키마 변경
 
@@ -619,24 +917,32 @@ spring:
   }
   ```
 
-#### 테스트 커버리지 목표 (단계별)
+#### 테스트 커버리지 목표 (Phase별)
 
-**Phase 1 - 초기 개발** (Week 1-2):
-- 도메인 레이어: 60% 이상
-- 인프라스트럭처 레이어: 50% 이상
-- API 레이어: 40% 이상
-
-**Phase 2 - 중기 개발** (Week 3-4):
+**Phase 1 - User 도메인** (Week 1-2):
 - 도메인 레이어: 70% 이상
 - 인프라스트럭처 레이어: 60% 이상
 - API 레이어: 50% 이상
+- 목표: 첫 슬라이스에서 테스트 패턴 확립, 이후 재사용
 
-**Phase 3 - 완성 단계** (Week 5-6):
+**Phase 2 - Product 도메인** (Week 3-4):
+- 도메인 레이어: 75% 이상
+- 인프라스트럭처 레이어: 65% 이상
+- API 레이어: 55% 이상
+- 목표: User에서 확립한 패턴 적용, Elasticsearch 테스트 추가
+
+**Phase 3 - Order 도메인** (Week 5-6):
 - 도메인 레이어: 80% 이상
 - 인프라스트럭처 레이어: 70% 이상
 - API 레이어: 60% 이상
+- 목표: 통합 시나리오 테스트 추가 (User-Product-Order 연동)
 
-**목표 설정 이유**: 초기부터 높은 커버리지를 요구하면 개발 속도가 크게 저하됩니다. 점진적으로 커버리지를 높이며 지속 가능한 테스트 작성 습관을 만듭니다.
+**Phase 4 - Kafka 통합** (Week 7):
+- 이벤트 발행/소비 테스트: 70% 이상
+- Saga Pattern 테스트: 80% 이상 (보상 트랜잭션 포함)
+- 목표: 이벤트 기반 아키텍처 검증
+
+**목표 설정 이유**: 수직적 슬라이스 방식에서는 각 도메인마다 완전한 테스트 작성이 필요합니다. 첫 슬라이스(User)에서 패턴을 확립하면 이후 슬라이스는 빠르게 진행됩니다.
 
 #### 테스트 작성 시점
 - **기능 구현 중**: TDD 방식 권장 (Red → Green → Refactor)
