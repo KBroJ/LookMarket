@@ -714,7 +714,7 @@ User 도메인 구현: 회원가입, 로그인 기능
 - [x] 아키텍처 규칙 준수
 - [x] 코드 품질 규칙 준수
 - [x] 테스트 커버리지 달성
-- [x] DEVELOPMENT_LOG.md 업데이트
+- [x] docs/project/DEVELOPMENT_LOG.md 업데이트
 ```
 
 #### 셀프 리뷰 체크리스트 (간소화)
@@ -725,7 +725,7 @@ User 도메인 구현: 회원가입, 로그인 기능
 | **코드 품질** | 네이밍, 크기 제한, 복잡도, DRY 원칙 |
 | **테스트** | 단위/통합/E2E 테스트 작성 완료, 모든 테스트 통과 |
 | **보안** | SQL Injection, XSS, 비밀번호 암호화, 민감 정보 로깅 금지 |
-| **문서** | DEVELOPMENT_LOG.md 업데이트, API 문서 (필요 시) |
+| **문서** | docs/project/DEVELOPMENT_LOG.md 업데이트, API 문서 (필요 시) |
 
 #### PR 머지 후
 
@@ -975,7 +975,7 @@ spring:
   ```
 
 **2. 기술 선택 이유를 docs에 문서화**
-- 새로운 라이브러리나 패턴 도입 시 `docs/decisions/` 디렉토리에 ADR (Architecture Decision Record) 작성
+- 새로운 라이브러리나 패턴 도입 시 `docs/architecture/decisions/` 디렉토리에 ADR (Architecture Decision Record) 작성
 - 파일명 형식: `ADR-{번호}-{제목}.md` (예: `ADR-001-왜-QueryDSL을-선택했는가.md`)
 - 포함 내용:
   - **상황(Context)**: 어떤 문제를 해결하려고 했는가?
@@ -995,7 +995,7 @@ spring:
 
 #### 1. 개발 로그 (DEVELOPMENT_LOG.md)
 
-**위치**: `docs/DEVELOPMENT_LOG.md`
+**위치**: `docs/project/DEVELOPMENT_LOG.md`
 
 **작성 시점**:
 - 매 작업 세션 종료 시
@@ -1078,7 +1078,7 @@ KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
 
 #### 3. 질문과 답변 문서 (Q&A)
 
-**위치**: `docs/qna/{주제}.md`
+**위치**: `docs/learning/qna/{주제}.md`
 
 **작성 시점**: 궁금증이 생겨 학습하고 이해한 내용
 
@@ -1123,7 +1123,7 @@ public class JpaOrderRepository implements OrderRepository {
 
 #### 4. 앞으로 해야 할 일 (TODO)
 
-**위치**: `docs/TODO.md`
+**위치**: `docs/project/TODO.md`
 
 **작성 시점**: 새로운 작업이 생길 때마다 업데이트
 
@@ -1155,13 +1155,13 @@ public class JpaOrderRepository implements OrderRepository {
 기능 구현 완료 시 다음 항목 확인:
 
 **필수 항목** (모든 작업 세션마다):
-- [ ] `DEVELOPMENT_LOG.md`에 작업 내용 기록 (완료 작업, 기술적 결정, 문제 해결, 학습 내용)
-- [ ] `docs/TODO.md` 업데이트 (완료 항목 체크, 새로운 작업 추가)
+- [ ] `docs/project/DEVELOPMENT_LOG.md`에 작업 내용 기록 (완료 작업, 기술적 결정, 문제 해결, 학습 내용)
+- [ ] `docs/project/TODO.md` 업데이트 (완료 항목 체크, 새로운 작업 추가)
 
 **선택 항목** (해당 시):
-- [ ] 중요한 기술적 결정 시 `docs/decisions/ADR-xxx.md` 작성 (기본 기술 스택 외 새 라이브러리 도입, 설계 패턴 변경 등)
+- [ ] 중요한 기술적 결정 시 `docs/architecture/decisions/ADR-xxx.md` 작성 (기본 기술 스택 외 새 라이브러리 도입, 설계 패턴 변경 등)
 - [ ] 3시간 이상 소요되었거나 재발 가능성이 높은 문제는 `docs/troubleshooting/` 문서화
-- [ ] 학습한 내용 중 나중에 참고할 만한 가치가 있는 것은 `docs/qna/` 문서화
+- [ ] 학습한 내용 중 나중에 참고할 만한 가치가 있는 것은 `docs/learning/qna/` 문서화
 
 **목표**: 문서 작성 시간이 개발 시간의 20%를 넘지 않도록 조절합니다.
 
@@ -1219,11 +1219,28 @@ Base URL: `http://localhost:8080`
 
 ## 참고 문서
 
-**프로젝트 상세 스펙**: `docs/LookMarket_Project_Specification.md` (4,362라인 포괄적 설계 문서)
+### 핵심 문서
+- **프로젝트 상세 스펙**: `docs/design/LookMarket_Project_Specification.md` (4,362라인 포괄적 설계 문서)
+- **개발 로그**: `docs/project/DEVELOPMENT_LOG.md` (구현 진행 상황 및 결정사항)
+- **README**: `README.md` (빠른 시작 가이드)
+- **문서 구조 가이드**: `docs/README.md` (전체 문서 구조 및 사용법)
 
-**개발 로그**: `docs/DEVELOPMENT_LOG.md` (구현 진행 상황 및 결정사항)
+### 아키텍처 규칙 (Architecture Rules)
+- **강제 규칙**: `docs/architecture/ENFORCEMENT_RULES.md` (반드시 준수해야 할 아키텍처 제약사항)
+- **설계 결정 기록**: `docs/architecture/decisions/` (ADR - Architecture Decision Records)
 
-**README**: `README.md` (빠른 시작 가이드)
+### 학습 자료 (Learning Materials)
+- **아키텍처 비교 분석**: `docs/learning/Loopers-vs-LookMarket-비교분석.md` (Hexagonal Architecture 두 가지 접근 방식 비교)
+- **질의응답**: `docs/learning/qna/` (학습 과정에서 생긴 질문과 답변)
+
+### 실용 가이드 (Guides)
+- **멀티모듈 아키텍처**: `docs/guides/멀티모듈-아키텍처-가이드.md`
+- **Docker Compose 설정**: `docs/guides/Docker-Compose-설정-가이드.md`
+
+### 기타
+- **환경 설정**: `docs/setup/` (개발 환경 구성 가이드)
+- **문제 해결**: `docs/troubleshooting/` (트러블슈팅 문서)
+- **보관 문서**: `docs/archive/` (참고용 구버전 문서)
 
 
 # 프로젝트 Git 워크플로우 규칙

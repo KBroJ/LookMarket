@@ -1,6 +1,9 @@
-# 멀티 모듈 아키텍처 가이드
+# 멀티 모듈 vs 폴더 구분 비교 분석
 
-> LookMarket 프로젝트의 멀티 모듈 구조 설명 및 폴더 구분 방식과의 비교
+> 프로젝트 구조 방식의 차이점과 LookMarket이 멀티 모듈을 선택한 이유
+
+**날짜**: 2025-12-16
+**카테고리**: 아키텍처
 
 ---
 
@@ -11,10 +14,9 @@
 3. [핵심 차이: 의존성 제어](#핵심-차이-의존성-제어)
 4. [왜 멀티 모듈을 선택했나?](#왜-멀티-모듈을-선택했나)
 5. [장단점 비교](#장단점-비교)
-6. [모듈 간 연결 방식](#모듈-간-연결-방식)
-7. [실제 동작 예시](#실제-동작-예시)
-8. [실제 프로젝트 구조](#실제-프로젝트-구조)
-9. [다른 프로젝트 예시](#다른-프로젝트-예시)
+6. [다른 프로젝트 예시](#다른-프로젝트-예시)
+7. [비교 표](#비교-표)
+8. [결론](#결론)
 
 ---
 
@@ -70,7 +72,7 @@ public class User {
 }
 ```
 
-### 방식 2: 멀티 모듈 (Multi Module) - 현재 프로젝트
+### 방식 2: 멀티 모듈 (Multi Module) - LookMarket 프로젝트
 
 ```
 lookmarket/
@@ -293,284 +295,6 @@ dependencies {
 
 ---
 
-## 모듈 간 연결 방식
-
-### Step 1: settings.gradle에 모듈 등록
-
-```gradle
-// settings.gradle
-rootProject.name = 'lookmarket'
-
-include 'lookmarket-api'
-include 'lookmarket-application'
-include 'lookmarket-domain'
-include 'lookmarket-infrastructure'
-include 'lookmarket-common'
-```
-
-**역할**: Gradle에게 "이 5개 모듈이 하나의 프로젝트에 속한다"고 알림
-
-### Step 2: 각 모듈의 build.gradle에서 의존성 선언
-
-```gradle
-// lookmarket-api/build.gradle
-dependencies {
-    // 다른 모듈을 의존성으로 추가
-    implementation project(':lookmarket-common')
-    implementation project(':lookmarket-domain')
-    implementation project(':lookmarket-application')
-    implementation project(':lookmarket-infrastructure')
-
-    // 외부 라이브러리
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-}
-```
-
-```gradle
-// lookmarket-domain/build.gradle
-dependencies {
-    implementation project(':lookmarket-common')
-    // infrastructure, api는 의존성에 없음!
-}
-```
-
-```gradle
-// lookmarket-infrastructure/build.gradle
-dependencies {
-    implementation project(':lookmarket-common')
-    implementation project(':lookmarket-domain')  // Domain 참조 가능
-
-    // 인프라 라이브러리
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.kafka:spring-kafka'
-}
-```
-
-### Step 3: 코드에서 사용
-
-```java
-// lookmarket-domain/src/main/java/.../User.java
-package com.lookmarket.domain.user;
-
-public class User {
-    private Long id;
-    private String email;
-    // 순수 비즈니스 로직
-}
-
-// lookmarket-domain/src/main/java/.../UserRepository.java (포트)
-package com.lookmarket.domain.user;
-
-public interface UserRepository {  // 인터페이스만 정의
-    User save(User user);
-    Optional<User> findById(Long id);
-}
-```
-
-```java
-// lookmarket-infrastructure/src/main/java/.../JpaUserRepository.java
-package com.lookmarket.infrastructure.user;
-
-import com.lookmarket.domain.user.User;  // domain 모듈 참조 가능!
-import com.lookmarket.domain.user.UserRepository;  // 포트 인터페이스
-
-@Repository
-public interface JpaUserRepository
-    extends JpaRepository<User, Long>, UserRepository {
-    // Domain의 UserRepository 인터페이스 구현
-}
-```
-
-```java
-// lookmarket-api/src/main/java/.../UserController.java
-package com.lookmarket.api.user;
-
-import com.lookmarket.domain.user.User;  // domain 모듈 참조
-import com.lookmarket.application.user.UserService;  // application 모듈 참조
-
-@RestController
-@RequestMapping("/api/v1/users")
-public class UserController {
-
-    private final UserService userService;
-
-    @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody UserRequest request) {
-        User user = userService.createUser(request);
-        return ResponseEntity.ok(user);
-    }
-}
-```
-
----
-
-## 실제 동작 예시
-
-### 예시 1: Domain에서 Infrastructure 참조 시도 (실패)
-
-```java
-// lookmarket-domain/.../Order.java
-package com.lookmarket.domain.order;
-
-import com.lookmarket.infrastructure.order.JpaOrderRepository;
-// ❌ 컴파일 에러!
-// error: package com.lookmarket.infrastructure.order does not exist
-```
-
-**에러 메시지**:
-```
-Compilation failure: package com.lookmarket.infrastructure.order does not exist
-```
-
-**이유**: `lookmarket-domain/build.gradle`에 infrastructure 의존성이 없음
-
-**해결**: Domain에서는 인터페이스(포트)만 정의하고, Infrastructure에서 구현
-
-```java
-// lookmarket-domain/.../OrderRepository.java (인터페이스)
-package com.lookmarket.domain.order;
-
-public interface OrderRepository {
-    Order save(Order order);
-}
-
-// lookmarket-infrastructure/.../JpaOrderRepository.java (구현)
-package com.lookmarket.infrastructure.order;
-
-import com.lookmarket.domain.order.OrderRepository;
-
-@Repository
-public interface JpaOrderRepository
-    extends JpaRepository<Order, Long>, OrderRepository {
-}
-```
-
-### 예시 2: Infrastructure에서 Domain 참조 (성공)
-
-```java
-// lookmarket-infrastructure/.../JpaOrderRepository.java
-package com.lookmarket.infrastructure.order;
-
-import com.lookmarket.domain.order.Order;  // ✅ 정상 동작!
-
-@Repository
-public interface JpaOrderRepository extends JpaRepository<Order, Long> {
-}
-```
-
-**이유**: `lookmarket-infrastructure/build.gradle`에 domain 의존성 있음
-
-### 예시 3: API에서 모든 모듈 참조 (성공)
-
-```java
-// lookmarket-api/.../OrderController.java
-package com.lookmarket.api.order;
-
-import com.lookmarket.domain.order.Order;  // ✅
-import com.lookmarket.application.order.OrderService;  // ✅
-import com.lookmarket.infrastructure.order.JpaOrderRepository;  // ✅
-
-@RestController
-public class OrderController {
-    // 모두 정상 동작!
-}
-```
-
-**이유**: api 모듈은 최상위 레이어로 모든 모듈 의존성 보유
-
----
-
-## 실제 프로젝트 구조
-
-### 현재 LookMarket 프로젝트
-
-```
-lookmarket/
-├── settings.gradle              # 모듈 등록
-├── build.gradle                 # 공통 설정 (Java 21, Lombok 등)
-│
-├── lookmarket-domain/           # 모듈 1: 도메인
-│   ├── build.gradle             # 의존성: common만
-│   └── src/main/java/
-│       └── com/lookmarket/domain/
-│           ├── user/
-│           │   ├── User.java
-│           │   └── UserRepository.java (인터페이스)
-│           ├── order/
-│           └── product/
-│
-├── lookmarket-infrastructure/   # 모듈 2: 인프라
-│   ├── build.gradle             # 의존성: common, domain, JPA, Kafka, Redis
-│   └── src/main/java/
-│       └── com/lookmarket/infrastructure/
-│           ├── user/
-│           │   └── JpaUserRepository.java
-│           ├── kafka/
-│           └── redis/
-│
-├── lookmarket-application/      # 모듈 3: 애플리케이션 서비스
-│   ├── build.gradle             # 의존성: common, domain
-│   └── src/main/java/
-│       └── com/lookmarket/application/
-│           ├── user/
-│           │   └── UserService.java
-│           └── order/
-│
-├── lookmarket-api/              # 모듈 4: API (실행 가능)
-│   ├── build.gradle             # 의존성: 모든 모듈
-│   └── src/main/java/
-│       └── com/lookmarket/api/
-│           ├── LookMarketApplication.java  # @SpringBootApplication
-│           └── user/
-│               └── UserController.java
-│
-└── lookmarket-common/           # 모듈 5: 공통
-    ├── build.gradle             # 의존성: 없음 (최하위)
-    └── src/main/java/
-        └── com/lookmarket/common/
-            └── util/
-```
-
-### 실행 방법
-
-```bash
-# API 모듈만 실행 (Spring Boot Application)
-./gradlew :lookmarket-api:bootRun
-
-# 전체 빌드
-./gradlew build
-
-# 특정 모듈만 빌드
-./gradlew :lookmarket-domain:build
-./gradlew :lookmarket-infrastructure:build
-
-# 특정 모듈만 테스트
-./gradlew :lookmarket-domain:test
-```
-
-### 빌드 결과물
-
-```
-lookmarket/
-├── lookmarket-domain/build/libs/
-│   └── lookmarket-domain-0.0.1-SNAPSHOT.jar
-├── lookmarket-infrastructure/build/libs/
-│   └── lookmarket-infrastructure-0.0.1-SNAPSHOT.jar
-├── lookmarket-application/build/libs/
-│   └── lookmarket-application-0.0.1-SNAPSHOT.jar
-├── lookmarket-api/build/libs/
-│   └── lookmarket-api-0.0.1-SNAPSHOT.jar  (실행 가능한 JAR)
-└── lookmarket-common/build/libs/
-    └── lookmarket-common-0.0.1-SNAPSHOT.jar
-```
-
-**실행**:
-```bash
-java -jar lookmarket-api/build/libs/lookmarket-api-0.0.1-SNAPSHOT.jar
-```
-
----
-
 ## 다른 프로젝트 예시
 
 ### 예시 1: Spring Framework 자체도 멀티 모듈!
@@ -679,6 +403,5 @@ netflix-platform/
 
 ---
 
-**작성일**: 2025-12-16
-**작성자**: LookMarket 개발팀
-**버전**: 1.0
+**마지막 업데이트**: 2025-12-16
+**관리자**: LookMarket 개발팀
