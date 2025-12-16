@@ -3,7 +3,6 @@ package com.lookmarket.api;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 /**
  * LookMarket - 패션 통합 커머스 플랫폼
@@ -13,9 +12,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
  * - Hexagonal Architecture
  * - Event-Driven Architecture (Kafka)
  * - DDD (Domain-Driven Design)
+ *
+ * TODO: JPA Auditing은 도메인 엔티티 작성 시 @EnableJpaAuditing 추가 예정
  */
 @SpringBootApplication(scanBasePackages = "com.lookmarket")
-@EnableJpaAuditing
 @ConfigurationPropertiesScan
 public class LookMarketApplication {
 
