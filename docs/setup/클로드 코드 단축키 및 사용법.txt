@@ -363,7 +363,7 @@
 					# 먼저 uv 설치(없다면):
 						powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 					# 그 다음 Serena 추가:
-						claude mcp add serena -- uvx --from git+https://github.com/oraios/serena serena start-mcp-server --context ide-assistant --project $PWD
+						claude mcp add serena -- "uv run --from git+https://github.com/oraios/serena serena start-mcp-server --context ide-assistant --project $PWD"
 
 				# 5. Playwright
 						
