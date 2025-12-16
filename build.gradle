@@ -5,7 +5,7 @@ plugins {
 }
 
 allprojects {
-    group = 'com.stylehub'
+    group = 'com.lookmarket'
     version = '0.0.1-SNAPSHOT'
 
     repositories {

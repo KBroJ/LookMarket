@@ -174,7 +174,7 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 ## 🎓 학습 자료
 
-- [프로젝트 상세 스펙](../StyleHub_Project_Specification.md)
+- [프로젝트 상세 스펙](./docs/LookMarket_Project_Specification.md)
 - [아키텍처 다이어그램](./docs/architecture.md) (작성 예정)
 - [ERD](./docs/erd.md) (작성 예정)
 
