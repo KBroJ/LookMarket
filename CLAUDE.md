@@ -655,18 +655,30 @@ Order 수직적 슬라이스
 
 ### 커밋 규칙 (Commit Convention)
 
+#### 커밋 메시지 언어 규칙
+
+- **타입 접두사**: 영어 (Conventional Commits 표준)
+- **제목 및 본문**: 한글 (가독성 및 프로젝트 일관성)
+
+```
+feat: 회원가입 기능 구현
+
+- 이메일 중복 검증 추가
+- BCrypt 비밀번호 암호화 적용
+```
+
 #### Atomic Commit 원칙
 
 **1커밋 = 1레이어 완성 + 해당 테스트**
 
 | Type | Scope | 예시 |
 |------|-------|------|
-| `feat` | `domain`, `infrastructure`, `application`, `api` | `feat(domain): Add User entity and value objects` |
-| `fix` | `domain`, `infrastructure`, `application`, `api` | `fix(api): Resolve validation error in UserController` |
-| `refactor` | `domain`, `infrastructure`, `application`, `api` | `refactor(application): Extract user validation logic` |
-| `test` | `domain`, `infrastructure`, `application`, `api` | `test(domain): Add edge cases for User entity` |
-| `docs` | - | `docs: Update DEVELOPMENT_LOG with Phase 1 progress` |
-| `chore` | - | `chore: Update Gradle dependencies` |
+| `feat` | `domain`, `infrastructure`, `application`, `api` | `feat(domain): User 엔티티 및 값 객체 추가` |
+| `fix` | `domain`, `infrastructure`, `application`, `api` | `fix(api): UserController 유효성 검증 오류 수정` |
+| `refactor` | `domain`, `infrastructure`, `application`, `api` | `refactor(application): 사용자 검증 로직 분리` |
+| `test` | `domain`, `infrastructure`, `application`, `api` | `test(domain): User 엔티티 엣지 케이스 테스트 추가` |
+| `docs` | - | `docs: Phase 1 진행 상황 개발 로그 업데이트` |
+| `chore` | - | `chore: Gradle 의존성 업데이트` |
 
 #### 커밋 전 체크리스트
 
@@ -691,12 +703,12 @@ Order 수직적 슬라이스
 
 #### PR 제목 및 본문
 
-**제목**: Conventional Commits 형식
+**제목**: Conventional Commits 형식 (한글)
 ```
-feat: Implement user registration feature
+feat: 회원가입 기능 구현
 ```
 
-**본문**: PR 템플릿 사용
+**본문**: PR 템플릿 사용 (한글)
 ```markdown
 ## Summary
 User 도메인 구현: 회원가입, 로그인 기능
@@ -715,6 +727,35 @@ User 도메인 구현: 회원가입, 로그인 기능
 - [x] 코드 품질 규칙 준수
 - [x] 테스트 커버리지 달성
 - [x] docs/project/DEVELOPMENT_LOG.md 업데이트
+```
+
+#### PR 라벨 (Labels)
+
+PR 생성 시 적절한 라벨을 붙여 분류합니다.
+
+**타입 라벨** (필수 - 1개 선택):
+
+| 라벨 | 색상 | 용도 |
+|------|------|------|
+| `feature` | 🟢 녹색 | 새 기능 구현 |
+| `bug` | 🔴 빨간색 | 버그 수정 |
+| `docs` | 🔵 파란색 | 문서 작업 |
+| `refactor` | 🟡 노란색 | 리팩토링 |
+| `test` | 🟣 보라색 | 테스트 추가/수정 |
+
+**도메인 라벨** (해당 시 - 복수 선택 가능):
+
+| 라벨 | 용도 |
+|------|------|
+| `domain:user` | User 도메인 관련 |
+| `domain:product` | Product 도메인 관련 |
+| `domain:order` | Order 도메인 관련 |
+
+**PR 생성 명령어 예시**:
+```bash
+gh pr create --title "feat: 회원가입 기능 구현" \
+  --label "feature" --label "domain:user" \
+  --body "..."
 ```
 
 #### 셀프 리뷰 체크리스트 (간소화)
