@@ -3,6 +3,7 @@ package com.lookmarket.api.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -105,7 +106,7 @@ public class JwtTokenProvider {
             log.warn("지원하지 않는 JWT 토큰입니다: {}", e.getMessage());
         } catch (MalformedJwtException e) {
             log.warn("잘못된 형식의 JWT 토큰입니다: {}", e.getMessage());
-        } catch (SecurityException e) {
+        } catch (SignatureException e) {
             log.warn("JWT 서명 검증에 실패했습니다: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
             log.warn("JWT 토큰이 비어있습니다: {}", e.getMessage());
