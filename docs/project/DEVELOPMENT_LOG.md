@@ -1310,6 +1310,161 @@
 
 ---
 
-**마지막 업데이트**: 2025-12-17 (화요일)
-**현재 상태**: Phase 1 완료, Phase 1-C (테스트 보강) 준비 중
-**다음 작업 예정**: User 도메인 테스트 보강 (통합 테스트, E2E 테스트)
+## 📅 2025-12-17 (화요일) - 오후
+
+### ✅ 완료된 작업
+
+#### 1. 테스트 코드 작성 규칙 정립
+
+##### CLAUDE.md에 테스트 스타일 가이드 추가
+- [x] 테스트 코드 작성 규칙 (스타일 가이드) 섹션 추가
+  - 파일 네이밍 컨벤션 (`*Test.java`, `*IntegrationTest.java`, `*E2ETest.java`)
+  - `@Nested` 그룹핑 규칙 (메서드별 그룹핑)
+  - Given-When-Then 패턴 (한글 주석)
+  - 테스트 더블 사용 규칙 (Stub, Mock, Spy, Fake)
+  - BDDMockito 스타일 (`given().willReturn()`, `then().should()`)
+  - 테스트 레벨별 가이드라인 (단위/통합/E2E)
+  - `@DisplayName` 컨벤션 (한글, 메서드명과 동작 명시)
+
+##### 테스트 전략 학습 문서 작성
+- [x] `docs/learning/251217_테스트-전략-완벽-가이드.md` 작성
+  - 테스트 피라미드 개념
+  - 테스트 더블 상세 설명 (Stub, Mock, Spy, Fake 차이)
+  - BDDMockito 사용법
+  - Given-When-Then 패턴
+
+#### 2. 테스트 코드 일관성 개선
+
+##### @Tag 어노테이션 제거 (일관성 확보)
+- [x] `UserTest.java`에서 `@Tag("unit")` 제거
+- [x] `UserServiceTest.java`에서 `@Tag("unit")` 제거
+- [x] `AuthControllerE2ETest.java`에서 `@Tag("e2e")` 제거
+- **결정 이유**: 파일명 컨벤션으로 테스트 종류 구분 충분, 추가 어노테이션은 중복
+
+##### Testcontainers import 오류 해결
+- [x] IDE sync 이슈로 인한 import 오류 진단
+- [x] Gradle 의존성 정상 확인 후 IDE 새로고침으로 해결
+
+#### 3. Repository 통합 테스트 전략 재정립
+
+##### 기본 CRUD 테스트 불필요 결정
+- [x] `JpaUserRepositoryIntegrationTest.java` 삭제
+- **결정 이유**:
+  - 기본 CRUD (`save`, `findById`, `delete`)는 E2E 테스트에서 간접 검증
+  - 단순 쿼리 메서드 (`findByEmail`)는 Spring Data JPA가 보장
+  - sample 프로젝트 (LoopPak) 패턴 참고
+- **남은 파일**: `TestConfiguration.java` (테스트 설정용)
+
+##### CLAUDE.md 통합 테스트 규칙 업데이트
+- [x] 통합 테스트 "작성하지 않는 대상" 섹션 추가
+  - 기본 CRUD (`findById`, `save`, `delete`) - E2E 테스트에서 간접 검증
+  - 단순 쿼리 메서드 (`findByEmail` 등) - Spring Data JPA가 보장
+- [x] 통합 테스트 "필수 작성 대상" 명확화
+  - **복잡한 동적 쿼리** (QueryDSL 다중 조건, 정렬, 페이징)만 해당
+
+### 🔧 기술적 결정
+
+#### 1. 테스트 더블 사용 원칙 정립
+
+| 테스트 더블 | 사용 시점 | LookMarket 적용 |
+|------------|---------|----------------|
+| **Stub** | 단순 반환값 설정 | Repository 반환값 설정 |
+| **Mock** | 상호작용 검증 필요 | 이벤트 발행 검증 |
+| **Spy** | 실제 객체 일부만 오버라이드 | 거의 사용 안 함 |
+| **Fake** | 실제 구현의 단순 버전 | InMemoryRepository (테스트용) |
+
+#### 2. Repository 통합 테스트 전략
+
+**이전 전략**:
+- Repository 별로 통합 테스트 작성
+- 기본 CRUD 포함
+
+**새로운 전략**:
+- 기본 CRUD는 테스트하지 않음 (E2E에서 검증)
+- **복잡한 QueryDSL 쿼리만** 통합 테스트 작성
+  - 다중 조건 검색
+  - 동적 WHERE 절
+  - 페이징 + 정렬
+  - Fetch Join
+
+**이유**:
+1. 중복 테스트 방지 (E2E에서 이미 검증)
+2. 테스트 유지보수 비용 감소
+3. Spring Data JPA의 검증된 기능에 의존
+
+### 📚 학습 내용
+
+#### 1. 테스트 더블의 차이점
+
+```java
+// Stub - 단순 반환값 설정
+given(userRepository.findByEmail("test@test.com"))
+    .willReturn(Optional.of(testUser));  // 항상 같은 값 반환
+
+// Mock - 상호작용 검증
+then(eventPublisher).should().publish(any(UserCreatedEvent.class));  // 호출 여부 검증
+
+// Spy - 실제 객체 래핑
+UserService spyService = spy(new UserService(repo, encoder));
+doReturn(mockUser).when(spyService).getUserById(1L);  // 특정 메서드만 오버라이드
+
+// Fake - 실제 구현의 단순 버전
+class InMemoryUserRepository implements UserRepository {
+    private Map<Long, User> storage = new HashMap<>();
+    // 실제 동작하는 단순 구현
+}
+```
+
+#### 2. BDDMockito vs 일반 Mockito
+
+```java
+// 일반 Mockito
+when(repository.findById(1L)).thenReturn(Optional.of(user));
+verify(repository).save(any(User.class));
+
+// BDDMockito (권장)
+given(repository.findById(1L)).willReturn(Optional.of(user));
+then(repository).should().save(any(User.class));
+```
+
+**BDDMockito 사용 이유**: Given-When-Then 패턴과 일치하여 가독성 향상
+
+### 🐛 문제 및 해결
+
+#### 문제 1: Testcontainers import 오류
+- **증상**: `import org.testcontainers.junit.jupiter.Container;` 빨간줄
+- **원인**: IDE가 Gradle 의존성을 인식하지 못함
+- **해결**: IntelliJ에서 "Reload All Gradle Projects" 실행
+- **소요 시간**: 5분
+
+### 📊 변경된 파일
+
+| 파일 | 변경 내용 |
+|------|---------|
+| `CLAUDE.md` | 테스트 코드 작성 규칙 섹션 추가, 통합 테스트 규칙 업데이트 |
+| `UserTest.java` | `@Tag("unit")` 제거 |
+| `UserServiceTest.java` | `@Tag("unit")` 제거 |
+| `AuthControllerE2ETest.java` | `@Tag("e2e")` 제거 |
+| `JpaUserRepositoryIntegrationTest.java` | **삭제** |
+| `docs/learning/251217_테스트-전략-완벽-가이드.md` | 신규 작성 |
+
+### 📋 다음 작업 계획
+
+#### Phase 1-C: User 테스트 보강 (수정된 계획)
+
+**E2E 테스트** (우선):
+- [x] AuthController E2E 테스트 (`AuthControllerE2ETest.java` 작성됨)
+- [ ] UserController E2E 테스트 추가
+  - 회원가입 API 성공/실패 케이스
+  - 사용자 조회 API
+  - 이메일/비밀번호 변경 API
+
+**통합 테스트** (필요 시):
+- 복잡한 QueryDSL 쿼리가 추가될 때만 작성
+- 현재는 기본 CRUD만 있으므로 불필요
+
+---
+
+**마지막 업데이트**: 2025-12-17 (화요일) 오후
+**현재 상태**: Phase 1-C 테스트 전략 정립 완료
+**다음 작업 예정**: UserController E2E 테스트 추가

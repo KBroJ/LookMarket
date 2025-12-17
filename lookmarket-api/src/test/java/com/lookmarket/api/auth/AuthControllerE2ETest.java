@@ -8,8 +8,6 @@ import com.lookmarket.domain.user.User;
 import com.lookmarket.domain.user.UserRole;
 import com.lookmarket.domain.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
-
-import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,7 +16,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,15 +29,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("AuthController 통합 테스트")
+/**
+ * AuthController E2E 테스트
+ *
+ * MockMvc를 사용하여 HTTP 요청/응답을 검증하는 테스트
+ */
+@DisplayName("AuthController E2E 테스트")
 @WebMvcTest(AuthController.class)
-@Import({JwtTokenProvider.class, com.lookmarket.api.config.GlobalExceptionHandler.class, com.lookmarket.api.config.SecurityConfig.class, com.lookmarket.api.security.JwtAuthenticationFilter.class})
-@org.springframework.test.context.TestPropertySource(properties = {
+@Import({
+        JwtTokenProvider.class,
+        com.lookmarket.api.config.GlobalExceptionHandler.class,
+        com.lookmarket.api.config.SecurityConfig.class,
+        com.lookmarket.api.security.JwtAuthenticationFilter.class
+})
+@TestPropertySource(properties = {
         "jwt.secret=test-secret-key-for-jwt-token-generation-must-be-long-enough-for-testing",
         "jwt.access-token-expiration=3600000",
         "jwt.refresh-token-expiration=604800000"
 })
-class AuthControllerTest {
+class AuthControllerE2ETest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -74,7 +85,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("로그인 성공 시 토큰을 반환한다")
-        void login_success() throws Exception {
+        void success() throws Exception {
             // given
             LoginRequest request = new LoginRequest("test@example.com", "password123");
 
@@ -94,7 +105,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("잘못된 인증 정보로 로그인 시 401을 반환한다")
-        void login_invalidCredentials_returns401() throws Exception {
+        void invalidCredentials_returns401() throws Exception {
             // given
             LoginRequest request = new LoginRequest("test@example.com", "wrongPassword");
 
@@ -113,7 +124,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("이메일 형식이 잘못되면 400을 반환한다")
-        void login_invalidEmailFormat_returns400() throws Exception {
+        void invalidEmailFormat_returns400() throws Exception {
             // given
             LoginRequest request = new LoginRequest("invalid-email", "password123");
 
@@ -128,7 +139,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("이메일이 비어있으면 400을 반환한다")
-        void login_emptyEmail_returns400() throws Exception {
+        void emptyEmail_returns400() throws Exception {
             // given
             LoginRequest request = new LoginRequest("", "password123");
 
@@ -143,7 +154,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("비밀번호가 비어있으면 400을 반환한다")
-        void login_emptyPassword_returns400() throws Exception {
+        void emptyPassword_returns400() throws Exception {
             // given
             LoginRequest request = new LoginRequest("test@example.com", "");
 
@@ -163,7 +174,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("유효한 Refresh Token으로 새 토큰을 발급받는다")
-        void refresh_success() throws Exception {
+        void success() throws Exception {
             // given
             String refreshToken = jwtTokenProvider.createRefreshToken(1L);
             TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
@@ -183,7 +194,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("유효하지 않은 Refresh Token이면 401을 반환한다")
-        void refresh_invalidToken_returns401() throws Exception {
+        void invalidToken_returns401() throws Exception {
             // given
             TokenRefreshRequest request = new TokenRefreshRequest("invalid.refresh.token");
 
@@ -198,7 +209,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("Access Token으로 갱신 시도하면 401을 반환한다")
-        void refresh_withAccessToken_returns401() throws Exception {
+        void withAccessToken_returns401() throws Exception {
             // given
             String accessToken = jwtTokenProvider.createAccessToken(1L, "test@example.com", "USER");
             TokenRefreshRequest request = new TokenRefreshRequest(accessToken);
@@ -215,7 +226,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("Refresh Token이 비어있으면 400을 반환한다")
-        void refresh_emptyToken_returns400() throws Exception {
+        void emptyToken_returns400() throws Exception {
             // given
             TokenRefreshRequest request = new TokenRefreshRequest("");
 
@@ -230,7 +241,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("비활성 사용자의 Refresh Token이면 401을 반환한다")
-        void refresh_inactiveUser_returns401() throws Exception {
+        void inactiveUser_returns401() throws Exception {
             // given
             String refreshToken = jwtTokenProvider.createRefreshToken(1L);
             TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
