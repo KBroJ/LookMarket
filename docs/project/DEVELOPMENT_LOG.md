@@ -1114,30 +1114,202 @@
 - **전체**: 38개 테스트, 0 실패
 - **빌드 시간**: 19초
 
-### 📋 다음 작업 계획
+### 📋 다음 작업 계획 → ✅ 완료됨
 
 #### 문서화 작업
-- [ ] DEVELOPMENT_LOG.md 업데이트 (현재 진행 중)
-- [ ] docs/README.md 업데이트 (새 문서 반영)
+- [x] DEVELOPMENT_LOG.md 업데이트
+- [x] docs/README.md 업데이트 (새 문서 반영)
 
 #### 커밋 및 PR
-- [ ] 커밋 1: 문서 구조 개편
-  - CLAUDE.md
-  - docs/ (architecture, learning, guides)
-- [ ] 커밋 2: User 도메인 수직적 슬라이스 구현
+- [x] 커밋: User 도메인 수직적 슬라이스 구현
   - Domain, Infrastructure, Application, API Layer
   - 단위 테스트 38개
   - Spring Security 의존성
   - phoneNumber 기능
-- [ ] PR 생성: "feat: Implement User domain vertical slice"
+- [x] PR #4 생성 및 머지: "feat: Implement User domain vertical slice"
 
 #### Spring Security & JWT 설정
-- [ ] SecurityConfig 작성 (최소 설정)
-- [ ] JWT 토큰 발급/검증 구현
-- [ ] JwtAuthenticationFilter
-- [ ] 로그인 API
+- [x] SecurityConfig 작성
+- [x] JWT 토큰 발급/검증 구현
+- [x] JwtAuthenticationFilter
+- [x] 로그인 API
+- [x] PR #5 생성 및 머지: "feat: Implement JWT authentication and documentation"
 
 ---
 
-**마지막 업데이트**: 2025-12-16 21:00 (월요일)
-**다음 작업 예정**: 문서 업데이트 완료 → 커밋 → PR 생성
+## 📅 2025-12-17 (화요일)
+
+### ✅ 완료된 작업
+
+#### 1. JWT 인증 구현 완료 (PR #5 머지됨)
+
+##### Spring Security & JWT
+- [x] `SecurityConfig.java` - Spring Security 설정
+  - CSRF 비활성화 (Stateless)
+  - 세션 정책: STATELESS
+  - 공개 엔드포인트: `/api/v1/auth/**`, Swagger, Actuator
+  - JWT 필터 등록
+- [x] `JwtTokenProvider.java` - JWT 토큰 발급/검증
+  - Access Token 발급 (15분 만료)
+  - Refresh Token 발급 (7일 만료)
+  - 토큰 검증 및 클레임 추출
+- [x] `JwtAuthenticationFilter.java` - JWT 필터
+  - Authorization 헤더에서 Bearer 토큰 추출
+  - 토큰 검증 후 SecurityContext에 인증 정보 설정
+- [x] `JwtUserDetails.java` - Spring Security UserDetails 구현
+
+##### 인증 API
+- [x] `AuthController.java`
+  - POST `/api/v1/auth/login` - 로그인 (이메일/비밀번호)
+  - POST `/api/v1/auth/refresh` - 토큰 갱신
+- [x] DTO 작성
+  - `LoginRequest.java`
+  - `TokenResponse.java`
+  - `TokenRefreshRequest.java`
+
+##### 예외 처리
+- [x] `GlobalExceptionHandler.java` - 전역 예외 핸들러
+  - 도메인 예외 처리 (UserNotFoundException, DuplicateEmailException 등)
+  - JWT 예외 처리 (ExpiredJwtException, MalformedJwtException 등)
+  - Validation 예외 처리
+
+#### 2. RESTful API 설계 문서 작성
+
+##### 아키텍처 결정 기록 (ADR)
+- [x] `docs/architecture/decisions/ADR-002-RESTful-API-설계-원칙.md`
+  - URL Path 버저닝 채택 (`/api/v1/...`)
+  - 리소스 중심 URL 설계
+  - HTTP 메서드 사용 규칙
+  - 상태 변경 패턴 (Sub-resource)
+  - HTTP 상태 코드 규칙
+  - 응답 형식 표준화
+
+##### 학습 문서
+- [x] `docs/learning/251217_RESTful-API-설계-완벽-가이드.md`
+  - REST 원칙 상세 설명
+  - 좋은 예 / 나쁜 예 비교
+  - LookMarket API 적용 사례
+
+#### 3. 문서 정리 작업
+
+##### 파일명 날짜 접두어 추가
+- [x] 학습 문서 파일명 변경 (6개)
+  - `DTO-vs-DomainEntity-vs-InfrastructureEntity-비교분석.md` → `251216_DTO-vs-DomainEntity-vs-InfrastructureEntity-비교분석.md`
+  - `Hexagonal-Architecture-Domain-구현-방식-비교.md` → `251216_Hexagonal-Architecture-Domain-구현-방식-비교.md`
+  - `JWT-인증-완벽-가이드.md` → `251216_JWT-인증-완벽-가이드.md`
+  - `Mock-테스트-완벽-가이드.md` → `251216_Mock-테스트-완벽-가이드.md`
+  - `멀티모듈-vs-폴더구분-비교분석.md` → `251216_멀티모듈-vs-폴더구분-비교분석.md`
+  - `핵심-설계-패턴-개념-정리.md` → `251216_핵심-설계-패턴-개념-정리.md`
+
+##### CLAUDE.md 업데이트
+- [x] RESTful API 설계 규칙 섹션 추가
+  - API 버저닝 규칙
+  - URL 설계 원칙
+  - HTTP 메서드 사용 규칙
+  - 상태 변경 패턴
+  - HTTP 상태 코드 규칙
+  - 응답 형식 표준
+
+#### 4. Git Hooks 설정 (PR #6)
+- [x] main 브랜치 직접 push 방지 hook 추가
+  - `.husky/pre-push` 설정
+
+### 🔧 기술적 결정
+
+#### 1. RESTful API 설계 원칙 채택
+- **결정**: URL Path 버저닝 (`/api/v1/...`) 사용
+- **이유**:
+  - URL에서 버전 명확히 확인 가능
+  - 캐싱 효율적
+  - 클라이언트 구현 단순
+
+#### 2. 상태 변경 API 패턴
+- **결정**: Sub-resource 패턴 사용
+- **예시**:
+  ```
+  # 나쁜 예 (동사 사용)
+  POST /users/1/activate
+
+  # 좋은 예 (상태 리소스)
+  PATCH /users/1/status
+  Body: { "status": "ACTIVE" }
+  ```
+- **이유**: RESTful 원칙 준수, 리소스 중심 설계
+
+### 📊 현재 프로젝트 상태
+
+#### Phase 진행 현황
+| Phase | 내용 | 상태 | 비고 |
+|-------|------|------|------|
+| Phase 0 | 환경 검증 | ✅ 완료 | 2025-12-16 |
+| Phase 1 | User 도메인 수직적 슬라이스 | ✅ 완료 | PR #4 머지 |
+| Phase 1-B | JWT 인증 | ✅ 완료 | PR #5 머지 |
+| Phase 2 | Product 도메인 | ⏳ 대기 | 다음 단계 |
+| Phase 3 | Order 도메인 | ⏳ 대기 | |
+| Phase 4 | Kafka 이벤트 통합 | ⏳ 대기 | |
+| Phase 5 | 프론트엔드 연동 | ⏳ 대기 | |
+
+#### Git 커밋 현황 (최근)
+```
+1383ec9 - chore: main 브랜치 직접 push 방지 hook 추가 (#6)
+5f3cd56 - feat: Implement JWT authentication and documentation (#5)
+2e6d19b - feat: Implement User domain vertical slice (#4)
+```
+
+#### 구현된 코드 현황
+- **Java 소스 파일**: 25개
+- **테스트 파일**: 5개 (38개 테스트)
+- **SQL 마이그레이션**: 1개 (V1__create_users_table.sql)
+- **문서**: 15개+
+
+### 📋 앞으로 해야 할 일
+
+> **상세 TODO 리스트는 [docs/project/TODO.md](./TODO.md) 참조**
+
+#### 개발 순서 변경 (2025-12-17 결정)
+
+**기존 계획** (고급 기술 먼저):
+- Phase 2: Product + Elasticsearch
+- Phase 3: Order + Redis 분산 락
+- Phase 4: Kafka 이벤트 통합
+
+**새로운 계획** (도메인 완성 우선):
+- Phase 1-C: User 테스트 보강 (다음 작업)
+- Phase 1-D: User 프론트엔드 연동
+- Phase 2: Product 기본 구현 (ES 없이 LIKE 검색)
+- Phase 3: Order 기본 구현 (분산 락 없이 낙관적 락만)
+- Phase 4: 프론트엔드 통합
+- **Phase 5: 고급 기술 통합** (마지막)
+  - Redis: 캐싱, Refresh Token, 분산 락
+  - Elasticsearch: 전문 검색, 자동완성
+  - Kafka: 이벤트 기반, Saga, CDC
+
+**변경 이유**:
+1. 기본 기능만으로 동작하는 커머스 조기 완성
+2. 고급 기술 적용 전후 비교 가능 (학습 효과)
+3. 포트폴리오 시연 가능 시점 앞당김
+
+#### 학습 방법론: 레퍼런스 기반 구현 (2025-12-17 결정)
+
+**방식**: User 도메인을 레퍼런스로 삼아 Product, Order 도메인 직접 구현
+
+**4단계 학습 흐름**:
+1. **힌트 확인**: 구현할 레이어와 클래스, 필요한 필드/메서드 파악
+2. **직접 구현**: User.java, UserService.java 등 레퍼런스 코드 참고하며 작성
+3. **리뷰 & 개선**: 코드 검토, 아키텍처 규칙 준수 확인, 개선점 반영
+4. **다음 레이어**: Domain → Infrastructure → Application → API 순서 반복
+
+**적용 범위**:
+- Phase 2 (Product): 상품 엔티티, CRUD, 검색 기본 기능
+- Phase 3 (Order): 주문 엔티티, 주문 생성/조회/취소
+
+**기대 효과**:
+- Hexagonal Architecture 패턴 체득
+- Behavior-rich Entity 설계 역량 향상
+- 아키텍처 규칙 준수 습관화
+
+---
+
+**마지막 업데이트**: 2025-12-17 (화요일)
+**현재 상태**: Phase 1 완료, Phase 1-C (테스트 보강) 준비 중
+**다음 작업 예정**: User 도메인 테스트 보강 (통합 테스트, E2E 테스트)

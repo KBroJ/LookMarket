@@ -11,20 +11,30 @@ LookMarket은 Java 21과 Spring Boot 3.3.x 기반의 멀티 브랜드 패션/뷰
 ## 구현 전략 및 현재 상태
 
 ### 개발 방식
-- **수직적 슬라이스 (Vertical Slice)** 접근: 각 도메인을 Domain → Application → Infrastructure → API까지 완전히 구현
-- **이벤트 처리**: Phase 1-3은 Spring Event 사용, Phase 4에서 Kafka로 전환
+- **수직적 슬라이스 (Vertical Slice) + 도메인 완성 우선**
+- 각 도메인: **기본 구현 → 테스트 → 프론트엔드 연동** 순서로 완성
+- **User 도메인을 레퍼런스로 삼아 Product, Order 도메인 설계/구현**
+- **고급 기술(Redis, Elasticsearch, Kafka)은 모든 도메인 완성 후 마지막에 적용**
+- 이벤트 처리: Phase 1-3은 Spring Event 사용, Phase 5에서 Kafka로 전환
 
 ### 현재 진행 상황
-- **완료**: Phase 0 (환경 검증 및 문서화)
-- **진행 중**: Phase 1 준비 (User 도메인 수직적 슬라이스)
-- **다음 단계**: User 도메인 완전 구현 (Domain/Infrastructure/Application/API Layer + Tests)
+- **완료**: Phase 0 (환경 검증), Phase 1 (User 기본 구현), Phase 1-B (JWT 인증)
+- **다음 단계**: Phase 1-C (User 테스트 보강)
+- **상세 진행 현황**: [docs/project/TODO.md](docs/project/TODO.md) 참조
 
 ### Phase별 로드맵
-- **Phase 1** (Week 1-2): User 도메인 (회원가입, 로그인, 프로필 관리)
-- **Phase 2** (Week 3-4): Product 도메인 (상품 CRUD, Elasticsearch 검색)
-- **Phase 3** (Week 5-6): Order 도메인 (주문 생성/조회/취소, 재고 관리)
-- **Phase 4** (Week 7): Kafka 이벤트 통합 (Saga, CDC, SSE)
-- **Phase 5** (Week 8): 프론트엔드 연동 & 최적화
+
+**기본 기능 구현 (고급 기술 없이 동작하는 커머스)**:
+- **Phase 1**: User 도메인 (기본 구현 ✅ → JWT ✅ → 테스트 → 프론트 연동)
+- **Phase 2**: Product 도메인 (기본 CRUD → 테스트 → 프론트 연동)
+- **Phase 3**: Order 도메인 (기본 주문/재고 → 테스트 → 프론트 연동)
+- **Phase 4**: 프론트엔드 통합 (전체 플로우 시연)
+
+**고급 기술 통합 (학습 후 적용)**:
+- **Phase 5**: 고급 기술 통합
+  - Redis: 캐싱, Refresh Token, 분산 락
+  - Elasticsearch: 전문 검색, 자동완성
+  - Kafka: 이벤트 기반, Saga, CDC, SSE
 
 ## 아키텍처
 
@@ -137,6 +147,114 @@ lookmarket/
 | **매직 넘버** | 하드코딩 금지 | 상수로 정의 또는 설정 파일 사용 |
 | **Null 처리** | Null 반환 금지 | `Optional` 사용 또는 예외 발생 |
 | **로깅** | 민감 정보 로깅 금지 | 비밀번호, 카드번호 마스킹 처리 |
+
+---
+
+## RESTful API 설계 규칙
+
+> **중요**: 모든 API는 RESTful 원칙을 준수해야 합니다.
+>
+> **상세 가이드**: [docs/architecture/decisions/ADR-002-RESTful-API-설계-원칙.md](docs/architecture/decisions/ADR-002-RESTful-API-설계-원칙.md)
+>
+> **학습 자료**: [docs/learning/251217_RESTful-API-설계-완벽-가이드.md](docs/learning/251217_RESTful-API-설계-완벽-가이드.md)
+
+### API 버저닝
+
+**URL Path 버저닝** 채택: `/api/v1/...`
+
+```
+/api/v1/users
+/api/v1/products
+/api/v1/orders
+```
+
+### URL 설계 원칙
+
+| 원칙 | 규칙 | 좋은 예 | 나쁜 예 |
+|------|------|---------|---------
+| 리소스 중심 | URL은 명사(리소스) | `/users` | `/getUsers` |
+| HTTP 메서드 | 행위는 메서드로 | `DELETE /users/1` | `POST /deleteUser` |
+| 복수형 | 컬렉션은 복수 | `/users` | `/user` |
+| 계층 구조 | 소속 관계 표현 | `/users/1/orders` | `/userOrders` |
+| 소문자 | URL은 소문자 | `/users` | `/Users` |
+| 케밥 케이스 | 단어 연결 시 | `/order-items` | `/orderItems` |
+
+### HTTP 메서드 사용
+
+| 메서드 | 용도 | 멱등성 | 예시 |
+|--------|------|--------|------|
+| GET | 조회 | O | `GET /users/1` |
+| POST | 생성 | X | `POST /users` |
+| PUT | 전체 수정 | O | `PUT /users/1` |
+| PATCH | 부분 수정 | O | `PATCH /users/1` |
+| DELETE | 삭제 | O | `DELETE /users/1` |
+
+### 상태 변경 패턴 (Sub-resource)
+
+**동사 대신 상태를 리소스로 취급**:
+```
+# 나쁜 예 (동사 사용)
+POST /users/1/activate
+POST /users/1/suspend
+
+# 좋은 예 (상태 리소스)
+PATCH /users/1/status
+Body: { "status": "ACTIVE" | "SUSPENDED" | "INACTIVE" }
+```
+
+### HTTP 상태 코드
+
+| 코드 | 의미 | 사용 시점 |
+|------|------|----------|
+| 200 | OK | 조회, 수정 성공 |
+| 201 | Created | 생성 성공 |
+| 204 | No Content | 삭제 성공 |
+| 400 | Bad Request | 잘못된 요청 (validation 실패) |
+| 401 | Unauthorized | 인증 필요 |
+| 403 | Forbidden | 권한 없음 |
+| 404 | Not Found | 리소스 없음 |
+| 409 | Conflict | 충돌 (중복 이메일 등) |
+| 500 | Internal Server Error | 서버 오류 |
+
+### 응답 형식
+
+#### 성공 응답
+```json
+// 단일 리소스
+{
+  "id": 1,
+  "email": "user@example.com",
+  "name": "홍길동"
+}
+
+// 컬렉션 (페이징)
+{
+  "content": [...],
+  "page": 0,
+  "size": 20,
+  "totalElements": 100,
+  "totalPages": 5
+}
+```
+
+#### 에러 응답
+```json
+{
+  "error": {
+    "code": "USER_NOT_FOUND",
+    "message": "사용자를 찾을 수 없습니다.",
+    "details": { "userId": 999 }
+  },
+  "timestamp": "2025-12-17T10:30:00Z",
+  "path": "/api/v1/users/999"
+}
+```
+
+### 예외 허용
+
+복잡한 경우 RESTful 원칙의 예외 허용:
+- 복잡한 검색: `POST /api/v1/products/search` (body에 조건)
+- 벌크 작업: `POST /api/v1/products/bulk-delete`
 
 ---
 
@@ -567,56 +685,115 @@ Hexagonal Architecture는 **레이어 분리**를 강조하지 **구현 순서**
 - Walking Skeleton 방법론과 일치: 한 기능을 end-to-end로 먼저 구현 (얇게) → 점진적으로 확장
 - 수직적 슬라이스로 구현하더라도 각 레이어의 의존성 방향만 지키면 아키텍처 원칙 준수
 
-#### 구현 순서
+#### 구현 순서 (도메인 완성 우선)
 
-**Phase 1: User 도메인 (Week 1-2)**
+**Phase 1: User 도메인**
 ```
-User 수직적 슬라이스
-├── Domain Layer: User 엔티티, UserRole/UserStatus enum, UserCreatedEvent
-├── Application Layer: UserService (회원가입, 로그인, 프로필 수정)
-├── Infrastructure Layer: UserJpaRepository, UserEntity, UserAdapter
-├── API Layer: UserController (REST API)
-└── Tests: 단위/통합/E2E 테스트
-```
-
-**Phase 2: Product 도메인 (Week 3-4)**
-```
-Product 수직적 슬라이스
-├── Domain Layer: Product 엔티티, ProductStatus, Category
-├── Application Layer: ProductService (CRUD, 검색)
-├── Infrastructure Layer: ProductJpaRepository, Elasticsearch
-├── API Layer: ProductController
-└── Tests
+User 도메인 완성
+├── 1-A: 기본 구현 ✅
+│   ├── Domain Layer: User 엔티티, UserRole/UserStatus enum
+│   ├── Infrastructure Layer: JpaUserRepository, UserEntity
+│   ├── Application Layer: UserService
+│   └── API Layer: UserController, DTO
+├── 1-B: JWT 인증 ✅
+│   └── Spring Security, JwtTokenProvider, AuthController
+├── 1-C: 테스트 보강 (다음 작업)
+│   ├── 통합 테스트 (Testcontainers)
+│   └── E2E 테스트 (MockMvc/REST Assured)
+└── 1-D: 프론트엔드 연동
+    └── 로그인, 회원가입, 프로필 페이지
 ```
 
-**Phase 3: Order 도메인 (Week 5-6)**
+**Phase 2: Product 도메인**
 ```
-Order 수직적 슬라이스
-├── Domain Layer: Order 엔티티, OrderItem, OrderStatus
-├── Application Layer: OrderService (주문 생성/조회/취소)
-├── Infrastructure Layer: OrderJpaRepository
-├── API Layer: OrderController
-└── Tests
+Product 도메인 완성 (Elasticsearch 없이)
+├── 2-A: 기본 구현 (CRUD, LIKE 검색)
+├── 2-B: 테스트
+└── 2-C: 프론트엔드 연동
 ```
 
-**Phase 4: Kafka 이벤트 통합 (Week 7)**
-- Spring Event → Kafka로 전환
-- Saga Pattern, CDC, SSE 구현
+**Phase 3: Order 도메인**
+```
+Order 도메인 완성 (Redis 분산락 없이 낙관적 락만)
+├── 3-A: 기본 구현 (주문/재고)
+├── 3-B: 테스트
+└── 3-C: 프론트엔드 연동
+```
 
-**Phase 5: 프론트엔드 연동 (Week 8)**
-- React 통합
+**Phase 4: 프론트엔드 통합**
+- 전체 플로우 시연 (회원가입 → 상품검색 → 주문)
+- UI/UX 완성
+
+**Phase 5: 고급 기술 통합 (학습 & 적용)**
+```
+고급 기술 학습 후 점진적 적용
+├── 5-A: Redis
+│   ├── Refresh Token 저장 (메모리 → Redis)
+│   ├── 상품 캐싱 (응답 속도 전후 비교)
+│   └── 분산 락 (낙관적 락 → Redis 락)
+├── 5-B: Elasticsearch
+│   ├── 상품 검색 (LIKE → 전문 검색)
+│   ├── 자동완성
+│   └── 패싯 검색
+└── 5-C: Kafka
+    ├── Spring Event → Kafka 전환
+    ├── Saga Pattern (주문-결제-재고)
+    ├── CDC (MySQL → ES 동기화)
+    └── SSE (실시간 알림)
+```
+
+#### 힌트 기반 학습 모드 (Product, Order 도메인)
+
+> **적용 대상**: Phase 2 (Product), Phase 3 (Order) 백엔드 구현
+> **목적**: User 도메인을 레퍼런스로 삼아 직접 구현하며 학습
+
+```
+1단계: 힌트 제공
+├── 구현할 레이어와 클래스 안내
+├── User 도메인 참고 포인트 제시
+├── 필요한 필드/메서드 힌트
+└── "어떤 비즈니스 메서드가 필요할까요?" 같은 질문으로 사고 유도
+
+2단계: 직접 구현
+└── User.java, UserService.java 등을 참고하여 코드 작성
+
+3단계: 리뷰 & 피드백
+├── 작성한 코드 검토
+├── 개선점 제안
+├── 아키텍처 규칙 준수 여부 확인
+└── 추가 학습 포인트 설명
+
+4단계: 다음 레이어로 이동
+└── Domain → Infrastructure → Application → API 순서로 반복
+```
+
+**예시 (Product 도메인 시작 시)**:
+```
+"이번에는 Product 엔티티를 만들어볼까요?
+User.java를 참고해서 Behavior-rich 패턴으로 작성해보세요.
+
+필요한 필드 힌트:
+- name, description, basePrice, status
+- sellerId (판매자 ID 참조)
+- brandId, categoryId (ID로 참조)
+
+생각해볼 질문:
+- 상품 가격 변경은 어떤 비즈니스 규칙이 필요할까요?
+- 상품 상태(판매중/품절/단종)는 어떻게 전환되어야 할까요?"
+```
 
 #### 이벤트 처리 전략
 
-**Phase 1-3: Spring Event 사용**
+**Phase 1-4: Spring Event 사용**
 - 도메인 이벤트를 메모리 내에서 발행/소비 (`@EventListener`)
 - Kafka 복잡도 없이 이벤트 기반 패턴 학습
 - 장점: 간단하고 빠른 검증, 도메인 이벤트 개념 익히기 좋음
 
-**Phase 4: Kafka 전환**
+**Phase 5: Kafka 전환**
 - Spring Event → Kafka 토픽으로 전환
-- 세 도메인이 모두 완성되어 이벤트 구독자 구현 가능
+- 모든 도메인이 완성되어 있으므로 이벤트 구독자 구현 가능
 - Saga Pattern, CDC 등 고급 패턴 적용
+- **적용 전후 비교**: 동기 vs 비동기 처리 차이 체험
 
 ### 새 기능 추가 (수직적 슬라이스 방식)
 
@@ -1191,6 +1368,34 @@ public class JpaOrderRepository implements OrderRepository {
   - [ ] Redis 캐싱 추가
 ```
 
+#### 5. 학습 문서 (docs/learning/)
+
+**위치**: `docs/learning/YYMMDD_문서명.md`
+
+**파일명 규칙**:
+- 형식: `YYMMDD_문서명.md` (예: `251216_JWT-인증-완벽-가이드.md`)
+- 작성 날짜를 파일명 앞에 표기하여 언제 작성되었는지 파악 가능
+
+**문서 상단 필수 항목**:
+```markdown
+# 문서 제목
+
+> **작성일시**: YYYY-MM-DD HH:MM
+>
+> 문서 설명
+```
+
+**예시**:
+```markdown
+# JWT 인증 완벽 가이드 (초보자용)
+
+> **작성일시**: 2025-12-16 23:46
+>
+> LookMarket 프로젝트의 JWT 인증 구현을 처음부터 쉽게 설명하는 문서입니다.
+```
+
+**작성 시점**: 새로운 개념을 학습하고 정리할 때
+
 #### 문서화 체크리스트
 
 기능 구현 완료 시 다음 항목 확인:
@@ -1271,7 +1476,8 @@ Base URL: `http://localhost:8080`
 - **설계 결정 기록**: `docs/architecture/decisions/` (ADR - Architecture Decision Records)
 
 ### 학습 자료 (Learning Materials)
-- **아키텍처 비교 분석**: `docs/learning/Loopers-vs-LookMarket-비교분석.md` (Hexagonal Architecture 두 가지 접근 방식 비교)
+- **Hexagonal Architecture 가이드**: `docs/learning/251216_Hexagonal-Architecture-Domain-구현-방식-비교.md` (설계 원칙 및 Loopers 프로젝트 비교)
+- **RESTful API 설계 가이드**: `docs/learning/251217_RESTful-API-설계-완벽-가이드.md` (API 버저닝, 토큰 갱신, RESTful 원칙)
 - **질의응답**: `docs/learning/qna/` (학습 과정에서 생긴 질문과 답변)
 
 ### 실용 가이드 (Guides)

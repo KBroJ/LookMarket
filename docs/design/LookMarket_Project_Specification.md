@@ -3730,11 +3730,21 @@ public class ExpiryBatchConfig {
 
 ## 구현 로드맵
 
-### MVP 로드맵 (수직적 슬라이스 접근)
+### MVP 로드맵 (수직적 슬라이스 + 도메인 완성 우선)
 
-> **개발 방식**: 각 도메인을 Domain → Application → Infrastructure → API까지 완전히 구현하는 수직적 슬라이스 방식 채택
+> **개발 방식**: 각 도메인을 **기본 구현 → 테스트 → 프론트엔드 연동** 순서로 완성
 >
-> **이유**: 조기 검증, 전체 흐름 이해, 테스트 용이성, 명확한 진척도
+> **레퍼런스 기반**: User 도메인을 레퍼런스로 삼아 Product, Order 도메인 설계/구현
+>
+> **4단계 학습 흐름** (Product, Order 도메인):
+>   1. **힌트 확인**: 구현할 클래스, 필요한 필드/메서드 파악
+>   2. **직접 구현**: User.java 등 레퍼런스 참고하며 코드 작성
+>   3. **리뷰 & 개선**: 코드 검토, 아키텍처 규칙 준수 확인
+>   4. **다음 레이어**: Domain → Infrastructure → Application → API 순서 반복
+>
+> **고급 기술**: Redis, Elasticsearch, Kafka는 모든 도메인 완성 후 마지막에 학습하며 적용
+>
+> **이유**: 조기 검증, 전체 흐름 이해, 고급 기술 적용 전후 비교, 학습 효과 극대화
 
 #### Phase 0: 환경 검증 및 문서화 (완료)
 
@@ -3765,210 +3775,267 @@ public class ExpiryBatchConfig {
 
 ---
 
-#### Phase 1: User 도메인 수직적 슬라이스 (Week 1-2)
+#### Phase 1: User 도메인 완성
+
+##### Phase 1-A: 기본 구현 ✅ (완료)
 
 **Domain Layer**
-- [ ] User 엔티티 작성
-  - ID, 이메일, 비밀번호, 이름, 전화번호
-  - BaseEntity 상속 (생성일시, 수정일시)
-  - 비즈니스 로직 메서드
-- [ ] UserRole enum (ADMIN, SELLER, BUYER)
-- [ ] UserStatus enum (ACTIVE, INACTIVE, SUSPENDED)
-- [ ] UserCreatedEvent, UserUpdatedEvent (Spring Event)
-- [ ] UserRepository 인터페이스 (포트)
+- [x] User 엔티티 작성 (Behavior-rich Entity 패턴)
+  - Static Factory Methods (create, reconstitute)
+  - 비즈니스 메서드 (changeEmail, changePassword, activate, suspend, deactivate)
+  - Validation 로직 내장
+- [x] UserRole enum (ADMIN, SELLER, CUSTOMER)
+- [x] UserStatus enum (ACTIVE, INACTIVE, SUSPENDED)
+- [x] UserRepository 인터페이스 (포트)
 
 **Infrastructure Layer**
-- [ ] Flyway 마이그레이션: V1__create_users_table.sql
-- [ ] UserEntity (JPA)
-- [ ] JpaUserRepository 구현
-- [ ] UserAdapter (Repository 포트 구현)
-- [ ] UserEventPublisher (Spring Event)
+- [x] Flyway 마이그레이션: V1__create_users_table.sql
+- [x] UserEntity (JPA)
+- [x] JpaUserRepository 구현
+  - fromDomain / toDomain 변환
 
 **Application Layer**
-- [ ] UserService
-  - 회원가입 (이메일 중복 검증, 비밀번호 암호화)
-  - 로그인 (JWT 토큰 발급)
-  - 프로필 조회, 프로필 수정
+- [x] UserService
+  - register (회원가입, 이메일 중복 체크, BCrypt 암호화)
+  - getUserById, getUserByEmail (조회)
+  - changeEmail, changePassword (수정)
+  - activateUser, suspendUser, deactivateUser (상태 관리)
 
 **API Layer**
-- [ ] UserController
-  - POST /api/v1/users (회원가입)
-  - POST /api/v1/auth/login (로그인)
-  - GET /api/v1/users/{id} (프로필 조회)
-  - PUT /api/v1/users/{id} (프로필 수정)
-- [ ] UserRequest/Response DTO
-- [ ] Exception Handler
+- [x] UserController (RESTful API)
+- [x] DTO (UserRequest, UserResponse, ChangeEmailRequest, ChangePasswordRequest)
 
-**보안**
-- [ ] Spring Security 설정
-- [ ] JWT 토큰 발급/검증 구현
-- [ ] BCrypt 비밀번호 암호화
+**단위 테스트**
+- [x] UserTest (25개 단위 테스트)
+- [x] UserServiceTest (13개 단위 테스트, Mockito)
 
-**Tests**
-- [ ] User 도메인 단위 테스트 (목표: 70% 커버리지)
-- [ ] UserRepository 통합 테스트 (Testcontainers MySQL)
-- [ ] UserService 통합 테스트
-- [ ] User API E2E 테스트 (REST Assured)
+##### Phase 1-B: JWT 인증 ✅ (완료)
+
+**Spring Security**
+- [x] SecurityConfig (CSRF 비활성화, STATELESS 세션)
+- [x] JWT 필터 등록
+
+**JWT**
+- [x] JwtTokenProvider (Access/Refresh Token 발급/검증)
+- [x] JwtAuthenticationFilter
+- [x] JwtUserDetails
+
+**API**
+- [x] AuthController (POST /api/v1/auth/login, POST /api/v1/auth/refresh)
+- [x] DTO (LoginRequest, TokenResponse, TokenRefreshRequest)
+
+**예외 처리**
+- [x] GlobalExceptionHandler (도메인/JWT/Validation 예외 처리)
+
+##### Phase 1-C: 테스트 보강 (다음 작업)
+
+**통합 테스트 (Testcontainers)**
+- [ ] UserRepository 통합 테스트
+- [ ] AuthService 통합 테스트
+
+**E2E 테스트 (MockMvc/REST Assured)**
+- [ ] UserController API 테스트
+- [ ] AuthController API 테스트
+
+**JWT 단위 테스트**
+- [ ] JwtTokenProvider 테스트
+
+##### Phase 1-D: 프론트엔드 연동
+
+**페이지 구현**
+- [ ] 로그인 페이지
+- [ ] 회원가입 페이지
+- [ ] 프로필 페이지
+
+**인증 관리**
+- [ ] AuthContext 또는 Zustand 스토어
+- [ ] ProtectedRoute 컴포넌트
+- [ ] TanStack Query 훅 (useLogin, useRegister, useUser)
 
 ---
 
-#### Phase 2: Product 도메인 수직적 슬라이스 (Week 3-4)
+#### Phase 2: Product 도메인 완성 (Elasticsearch 없이)
+
+##### Phase 2-A: 기본 구현
 
 **Domain Layer**
-- [ ] Product 엔티티, ProductOption
-- [ ] ProductStatus enum
-- [ ] Category 엔티티 (계층 구조)
+- [ ] Product 엔티티 (Behavior-rich Entity 패턴)
+  - Static Factory Methods (create, reconstitute)
+  - 비즈니스 메서드 (changePrice, updateStock, discontinue 등)
+- [ ] ProductStatus enum (ON_SALE, SOLD_OUT, DISCONTINUED)
+- [ ] Category 엔티티 (계층 구조, parent_id)
 - [ ] Brand 엔티티
-- [ ] ProductRepository 인터페이스
+- [ ] ProductRepository, CategoryRepository, BrandRepository 인터페이스
 
 **Infrastructure Layer**
-- [ ] Flyway 마이그레이션: V2__create_products_tables.sql
-- [ ] ProductEntity, ProductOptionEntity (JPA)
-- [ ] JpaProductRepository (QueryDSL 동적 쿼리)
-- [ ] Elasticsearch 연동
-  - Nori 형태소 분석기 설정
-  - 상품 인덱스 매핑
-  - ProductSearchRepository 구현
+- [ ] Flyway 마이그레이션
+  - V2__create_brands_table.sql
+  - V3__create_categories_table.sql
+  - V4__create_products_table.sql
+  - V5__create_product_options_table.sql
+  - V6__create_product_images_table.sql
+- [ ] JPA 엔티티 및 Repository 구현
 
 **Application Layer**
-- [ ] ProductService
-  - 상품 등록, 조회, 수정, 삭제
-  - 카테고리별 조회, 브랜드별 조회
-- [ ] ProductSearchService (Elasticsearch)
-  - 키워드 검색, 복합 필터링
-  - Aggregation (가격 범위, 브랜드, 카테고리)
+- [ ] ProductService (CRUD)
+- [ ] CategoryService
+- [ ] BrandService
 
 **API Layer**
-- [ ] ProductController
-  - POST /api/v1/products (상품 등록)
-  - GET /api/v1/products/{id} (상품 조회)
-  - GET /api/v1/products/search (검색)
-  - PUT /api/v1/products/{id} (상품 수정)
-- [ ] Redis 캐싱 (상품 상세)
+- [ ] ProductController (CRUD API, LIKE 검색)
+- [ ] CategoryController
+- [ ] BrandController
+- [ ] DTO 작성
 
-**Tests**
-- [ ] Product 도메인 단위 테스트 (목표: 75% 커버리지)
-- [ ] ProductRepository 통합 테스트
-- [ ] Elasticsearch 검색 테스트
-- [ ] Product API E2E 테스트
+##### Phase 2-B: 테스트
 
-**Frontend**
-- [ ] 상품 검색 페이지
-- [ ] 상품 목록 컴포넌트
+- [ ] Domain 단위 테스트 (ProductTest, CategoryTest, BrandTest)
+- [ ] Application 단위 테스트 (ProductServiceTest)
+- [ ] 통합 테스트 (Testcontainers)
+- [ ] E2E 테스트 (API 테스트)
+
+##### Phase 2-C: 프론트엔드 연동
+
+- [ ] 상품 목록 페이지 (LIKE 검색, 필터, 페이징)
 - [ ] 상품 상세 페이지
-- [ ] 필터/정렬 UI
+- [ ] 관리자 상품 등록/수정 페이지
 
 ---
 
-#### Phase 3: Order 도메인 수직적 슬라이스 (Week 5-6)
+#### Phase 3: Order 도메인 완성 (Redis 분산락 없이 낙관적 락만)
+
+##### Phase 3-A: 기본 구현
 
 **Domain Layer**
-- [ ] Order 엔티티, OrderItem
-- [ ] OrderStatus enum
-- [ ] Inventory 엔티티 (재고 관리)
-- [ ] OrderRepository, InventoryRepository 인터페이스
+- [ ] Order 엔티티 (Aggregate Root)
+  - 주문 생성, 취소, 결제 완료, 배송 시작
+- [ ] OrderItem 엔티티
+- [ ] OrderStatus enum (PENDING, PAID, SHIPPING, COMPLETED, CANCELLED)
+- [ ] Inventory 엔티티
+  - 재고 차감/복원 (낙관적 락 @Version)
+- [ ] 도메인 이벤트 (Spring Event)
+  - OrderCreatedEvent, OrderCancelledEvent
 
 **Infrastructure Layer**
-- [ ] Flyway 마이그레이션: V3__create_orders_tables.sql
-- [ ] OrderEntity, OrderItemEntity (JPA)
-- [ ] JpaOrderRepository (QueryDSL)
-- [ ] InventoryRepository (낙관적 락 @Version)
-- [ ] RedisLockService (분산 락 구현)
+- [ ] Flyway 마이그레이션
+  - V7__create_orders_table.sql
+  - V8__create_order_items_table.sql
+  - V9__create_inventory_table.sql
+- [ ] JPA 엔티티 및 Repository 구현
 
 **Application Layer**
-- [ ] OrderService
-  - 주문 생성 (User-Product 연동)
-  - 재고 차감 로직 (낙관적 락)
-  - 주문 조회, 주문 취소
-- [ ] InventoryService
-  - 재고 차감 (일반 상품: 낙관적 락)
-  - 재고 차감 (한정판: 분산 락)
+- [ ] OrderService (주문 생성/조회/취소)
+- [ ] InventoryService (재고 관리, 낙관적 락)
 
 **API Layer**
 - [ ] OrderController
   - POST /api/v1/orders (주문 생성)
-  - GET /api/v1/orders/{id} (주문 조회)
-  - GET /api/v1/users/{userId}/orders (내 주문 목록)
+  - GET /api/v1/orders (주문 목록)
+  - GET /api/v1/orders/{id} (주문 상세)
   - POST /api/v1/orders/{id}/cancel (주문 취소)
+- [ ] DTO 작성
 
-**Tests**
-- [ ] Order 도메인 단위 테스트 (목표: 80% 커버리지)
-- [ ] OrderRepository 통합 테스트
-- [ ] 동시성 테스트 (낙관적 락, 분산 락)
-- [ ] Order API E2E 테스트
-- [ ] User-Product-Order 통합 시나리오 테스트
+##### Phase 3-B: 테스트
 
-**Frontend**
+- [ ] Order 도메인 단위 테스트
+- [ ] Inventory 동시성 테스트 (멀티 스레드)
+- [ ] 통합 테스트 및 E2E 테스트
+
+##### Phase 3-C: 프론트엔드 연동
+
 - [ ] 장바구니 페이지
 - [ ] 주문 페이지
-- [ ] 재고 부족 에러 처리
+- [ ] 주문 내역 페이지
 
 ---
 
-#### Phase 4: Kafka 이벤트 아키텍처 통합 (Week 7)
+#### Phase 4: 프론트엔드 통합 및 완성
 
-**Spring Event → Kafka 전환**
-- [ ] Kafka Producer/Consumer 설정
-- [ ] Virtual Thread Kafka Listener
-- [ ] UserCreatedEvent → Kafka Topic
-- [ ] OrderCreatedEvent → Kafka Topic
-- [ ] ProductUpdatedEvent → Kafka Topic
+> **목표**: 전체 플로우 시연 가능한 프론트엔드 완성
 
-**Saga Pattern**
-- [ ] OrderSagaOrchestrator
-  - 주문 생성 이벤트
-  - 결제 이벤트
-  - 배송 이벤트
-  - 보상 트랜잭션 (재고 복원)
-- [ ] Dead Letter Queue 처리
+##### 통합 테스트
 
-**CDC (Change Data Capture)**
-- [ ] Debezium 설정
-- [ ] MySQL → Kafka 변경 이벤트 캡처
-- [ ] Elasticsearch 동기화 Consumer
+- [ ] 회원가입 → 로그인 → 상품 검색 → 주문 전체 플로우 테스트
+- [ ] 에러 케이스 처리 (재고 부족, 인증 만료 등)
 
-**SSE (Server-Sent Events)**
-- [ ] 재입고 알림 서비스
-  - SSE 엔드포인트
-  - Kafka Consumer
-- [ ] 알림 신청 API
+##### UI/UX 개선
 
-**Tests**
-- [ ] Kafka 이벤트 발행/소비 테스트 (목표: 70% 커버리지)
-- [ ] Saga Pattern 테스트 (보상 트랜잭션 포함)
-- [ ] CDC 동기화 테스트
-- [ ] SSE 연결 테스트
-
-**Frontend**
-- [ ] SSE 연결 (useStockNotification)
-- [ ] Toast 알림 UI
-- [ ] 재입고 알림 신청 버튼
-- [ ] 주문 상태 실시간 업데이트
+- [ ] 로딩 상태, 에러 상태 처리
+- [ ] 반응형 디자인
+- [ ] Toast 알림
 
 ---
 
-#### Phase 5: 프론트엔드 연동 & 최적화 (Week 8)
+#### Phase 5: 고급 기술 통합 (학습 & 적용)
+
+> **목표**: Redis, Elasticsearch, Kafka 학습 후 점진적 적용
+> **접근 방식**: 기존 기능에 고급 기술 적용하여 전후 비교
+
+##### Phase 5-A: Redis 적용
+
+**학습 목표**
+- Redis 기본 개념 (String, Hash, Set, List, Sorted Set)
+- Spring Data Redis 사용법
+- 캐싱 전략 (Cache-Aside, Write-Through 등)
+- 분산 락 개념
+
+**적용 항목**
+- [ ] Refresh Token Redis 저장 (현재 메모리/DB → Redis)
+  - 적용 전: 서버 재시작 시 토큰 무효화
+  - 적용 후: Redis에 저장하여 영속성 확보
+- [ ] 상품 상세 정보 캐싱
+  - 적용 전: 매번 DB 조회
+  - 적용 후: Redis 캐싱으로 응답 속도 개선 (측정 비교)
+- [ ] 분산 락 (선착순 한정판 재고)
+  - 적용 전: 낙관적 락으로 동시성 처리
+  - 적용 후: Redis 분산 락으로 경쟁 상태 방지
+
+##### Phase 5-B: Elasticsearch 적용
+
+**학습 목표**
+- Elasticsearch 기본 개념 (인덱스, 문서, 매핑)
+- Nori 한글 형태소 분석기
+- 검색 쿼리 (match, bool, filter)
+- Aggregation
+
+**적용 항목**
+- [ ] 상품 검색 기능 개선
+  - 적용 전: MySQL LIKE 검색
+  - 적용 후: Elasticsearch 전문 검색 (검색 품질 비교)
+- [ ] 자동완성 기능
+- [ ] 패싯 검색 (브랜드별, 카테고리별 상품 수)
+
+##### Phase 5-C: Kafka 적용
+
+**학습 목표**
+- Kafka 기본 개념 (토픽, 파티션, 컨슈머 그룹)
+- Spring Kafka 사용법
+- 이벤트 기반 아키텍처
+- Saga 패턴
+
+**적용 항목**
+- [ ] Spring Event → Kafka 전환
+  - 적용 전: 동기 처리
+  - 적용 후: 비동기 이벤트 처리
+- [ ] Saga 패턴 (주문-결제-재고)
+  - 분산 트랜잭션 처리
+  - 보상 트랜잭션
+- [ ] CDC (Change Data Capture)
+  - MySQL → Elasticsearch 자동 동기화
+- [ ] 실시간 알림 (SSE)
+  - 재입고 알림
+
+##### 기타 고급 기능 (선택)
 
 **Kafka Streams**
 - [ ] 실시간 주문 통계
 - [ ] 상품별 판매량 집계
-- [ ] Interactive Query API
-
-**성능 최적화**
-- [ ] N+1 문제 해결 (QueryDSL Fetch Join)
-- [ ] 인덱스 튜닝
-- [ ] 쿼리 최적화
-
-**Frontend 완성**
-- [ ] 관리자 대시보드 (실시간 통계)
-- [ ] 전체 UI/UX 개선
 
 **테스트 & 문서화**
 - [ ] JMeter 부하 테스트
 - [ ] 성능 벤치마크
 - [ ] Swagger API 문서 완성
-- [ ] 아키텍처 다이어그램
-- [ ] ERD 최종본
+- [ ] 아키텍처 다이어그램 업데이트
 
 ---
 

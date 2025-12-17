@@ -1,8 +1,9 @@
 # DTO vs Domain Entity vs Infrastructure Entity 비교 분석
 
+> **작성일시**: 2025-12-16 18:00
+>
 > LookMarket 프로젝트에서 사용하는 세 가지 엔티티/객체 타입의 차이점과 역할
 
-**날짜**: 2025-12-16
 **카테고리**: 아키텍처
 
 ---

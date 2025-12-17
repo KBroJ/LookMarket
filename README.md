@@ -135,11 +135,47 @@ Flyway 마이그레이션이 자동으로 실행됩니다.
 
 Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-주요 엔드포인트:
-- 인증: `POST /api/v1/auth/login`
-- 상품 검색: `GET /api/v1/products/search`
-- 주문 생성: `POST /api/v1/orders`
-- 재입고 알림: `GET /api/v1/notifications/stock/subscribe` (SSE)
+### RESTful API 설계 원칙
+
+이 프로젝트는 [RESTful API 설계 원칙](./docs/architecture/decisions/ADR-002-RESTful-API-설계-원칙.md)을 준수합니다.
+
+### 주요 API 엔드포인트
+
+#### 인증 (Auth)
+```
+POST   /api/v1/auth/login           # 로그인 (토큰 발급)
+POST   /api/v1/auth/refresh         # 토큰 갱신
+POST   /api/v1/auth/logout          # 로그아웃
+```
+
+#### 사용자 (Users)
+```
+POST   /api/v1/users                # 회원가입
+GET    /api/v1/users/{id}           # 프로필 조회
+PATCH  /api/v1/users/{id}           # 프로필 수정
+DELETE /api/v1/users/{id}           # 회원 탈퇴
+GET    /api/v1/users/me             # 내 정보 조회
+PATCH  /api/v1/users/{id}/status    # 상태 변경 (활성/정지/비활성)
+```
+
+#### 상품 (Products) - Phase 2에서 구현 예정
+```
+GET    /api/v1/products             # 상품 목록
+GET    /api/v1/products/{id}        # 상품 상세
+POST   /api/v1/products/search      # 상품 검색 (Elasticsearch)
+```
+
+#### 주문 (Orders) - Phase 3에서 구현 예정
+```
+POST   /api/v1/orders               # 주문 생성
+GET    /api/v1/orders/{id}          # 주문 조회
+PATCH  /api/v1/orders/{id}/status   # 주문 상태 변경
+```
+
+#### 알림 (Notifications) - Phase 4에서 구현 예정
+```
+GET    /api/v1/notifications/stock/subscribe  # 재입고 알림 (SSE)
+```
 
 ## 🔥 백엔드 어필 포인트
 
@@ -174,9 +210,10 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 ## 🎓 학습 자료
 
-- [프로젝트 상세 스펙](./docs/LookMarket_Project_Specification.md)
-- [아키텍처 다이어그램](./docs/architecture.md) (작성 예정)
-- [ERD](./docs/erd.md) (작성 예정)
+- [프로젝트 상세 스펙](./docs/design/LookMarket_Project_Specification.md)
+- [RESTful API 설계 가이드](./docs/learning/RESTful-API-설계-완벽-가이드.md)
+- [아키텍처 결정 기록 (ADR)](./docs/architecture/decisions/)
+- [개발 가이드 (CLAUDE.md)](./CLAUDE.md)
 
 ## 📝 개발 로드맵
 

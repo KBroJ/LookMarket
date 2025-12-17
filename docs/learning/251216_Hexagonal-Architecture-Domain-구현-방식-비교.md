@@ -1,7 +1,8 @@
 # Hexagonal Architecture 설계 결정 가이드
 
-> **작성일**: 2025-12-16
-> **목적**: LookMarket 프로젝트의 Hexagonal Architecture 설계 원칙과 Loopers 프로젝트와의 비교 분석
+> **작성일시**: 2025-12-16 18:00
+>
+> LookMarket 프로젝트의 Hexagonal Architecture 설계 원칙과 Loopers 프로젝트와의 비교 분석
 
 ---
 
