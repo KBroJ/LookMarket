@@ -1086,25 +1086,33 @@ spring:
   ```
 
 **2. 통합 테스트 (Integration Tests)**
-- **대상**: Repository, Kafka 리스너, Elasticsearch 검색, Redis 캐시
+- **대상**: Kafka 리스너, Elasticsearch 검색, Redis 캐시, **복잡한 QueryDSL 쿼리**
 - **위치**: `lookmarket-infrastructure/src/test/java`
 - **필수 작성 대상**:
-  - JPA Repository의 복잡한 쿼리 (QueryDSL 포함)
   - Kafka 메시지 발행 및 소비
   - Elasticsearch 인덱싱 및 검색
   - Redis 캐시 동작 및 분산 락
+  - **복잡한 동적 쿼리** (QueryDSL 다중 조건, 정렬, 페이징)
+- **작성하지 않는 대상**:
+  - 기본 CRUD (`findById`, `save`, `delete`) - E2E 테스트에서 간접 검증됨
+  - 단순 쿼리 메서드 (`findByEmail` 등) - Spring Data JPA가 보장
 - **도구**: Testcontainers, Spring Boot Test, @DataJpaTest
-- **예시**:
+- **예시** (복잡한 QueryDSL 쿼리만 테스트):
   ```java
-  @SpringBootTest
+  @DataJpaTest
   @Testcontainers
-  class ProductRepositoryIntegrationTest {
+  class ProductQueryRepositoryIntegrationTest {
       @Container
       static MySQLContainer mysql = new MySQLContainer("mysql:8.0");
 
       @Test
       void 복합조건_상품검색_성공() {
-          // 실제 데이터베이스를 사용한 통합 테스트
+          // 복잡한 동적 쿼리 테스트 (다중 필터, 정렬, 페이징)
+          ProductSearchCondition condition = new ProductSearchCondition(
+              categoryId, brandIds, minPrice, maxPrice, SortType.POPULAR
+          );
+          Page<ProductDto> result = repository.searchProducts(condition, pageable);
+          // 검증...
       }
   }
   ```
@@ -1167,6 +1175,117 @@ spring:
 - **기능 커밋 전**: 최소한 단위 테스트 1개 이상 작성 필수
 - **PR 생성 전**: 통합 테스트 및 API 테스트 작성 완료
 - **기존 코드 수정 시**: 영향받는 테스트 수정 및 추가 테스트 작성
+
+#### 테스트 코드 작성 규칙 (스타일 가이드)
+
+> **학습 자료**: [docs/learning/251217_테스트-전략-완벽-가이드.md](docs/learning/251217_테스트-전략-완벽-가이드.md)
+
+**1. 파일명 컨벤션**
+
+| 테스트 레벨 | 파일명 패턴 | 예시 |
+|------------|------------|------|
+| Unit | `*Test.java` | `UserTest.java`, `AuthServiceTest.java` |
+| Integration | `*IntegrationTest.java` | `JpaUserRepositoryIntegrationTest.java` |
+| E2E | `*E2ETest.java` | `AuthControllerE2ETest.java` |
+
+**2. @Nested 그룹핑 필수**
+
+메서드별로 `@Nested` 클래스로 그룹핑하여 테스트 구조를 명확히 합니다:
+```java
+@DisplayName("AuthService 단위 테스트")
+class AuthServiceTest {
+
+    @Nested
+    @DisplayName("authenticate() - 로그인 인증")
+    class Authenticate {
+        @Test
+        @DisplayName("이메일과 비밀번호가 일치하면 사용자를 반환한다")
+        void success() { }
+
+        @Test
+        @DisplayName("존재하지 않는 이메일이면 예외가 발생한다")
+        void userNotFound_throwsException() { }
+    }
+}
+```
+
+**3. Given-When-Then 패턴 준수**
+
+모든 테스트는 Given-When-Then 구조로 작성합니다:
+```java
+@Test
+void 이메일_변경_성공() {
+    // given - 테스트 준비
+    User user = createTestUser();
+    String newEmail = "new@example.com";
+
+    // when - 테스트 대상 실행
+    user.changeEmail(newEmail);
+
+    // then - 결과 검증
+    assertThat(user.getEmail()).isEqualTo(newEmail);
+}
+```
+
+**4. 테스트 더블 활용 규칙**
+
+| 상황 | 사용할 테스트 더블 | 예시 |
+|------|-----------------|------|
+| 특정 응답 반환 필요 | **Stub** | `given(repo.findById(1L)).willReturn(user)` |
+| 호출 여부 검증 필요 | **Mock** | `verify(repo).save(any())` |
+| 실제 객체 + 일부 조작 | **Spy** | `doReturn(true).when(spyService).isVip()` |
+| 실제처럼 동작하는 가짜 | **Fake** | `InMemoryUserRepository` |
+
+**Mockito BDDMockito 스타일 사용**:
+```java
+// Stub 설정 (given)
+given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+given(passwordEncoder.matches(rawPassword, encodedPassword)).willReturn(true);
+
+// Mock 검증 (then)
+then(userRepository).should().findByEmail(email);
+then(userRepository).should(never()).save(any());
+```
+
+**5. 테스트 더블 선택 기준**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Q: 어떤 테스트 더블을 사용할까?                               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ "특정 응답을 반환하게 하고 싶어" → Stub                       │
+│     given(repo.findById(1L)).willReturn(user);              │
+│                                                             │
+│ "이 메서드가 호출됐는지 확인하고 싶어" → Mock                  │
+│     then(service).should().sendEmail(any());                │
+│                                                             │
+│ "실제 객체 쓰면서 일부만 바꾸고 싶어" → Spy                   │
+│     doReturn(true).when(spyService).isVip();                │
+│                                                             │
+│ "실제처럼 동작하는 가짜가 필요해" → Fake                      │
+│     InMemoryUserRepository                                  │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**6. 테스트 레벨별 테스트 더블 사용 지침**
+
+| 테스트 레벨 | 테스트 더블 사용 | 설명 |
+|------------|----------------|------|
+| **Domain Unit** | 사용하지 않음 | 순수 Java, 외부 의존성 없음 |
+| **Service Unit** | Stub/Mock 적극 사용 | Repository, 외부 서비스 모두 Mock 처리 |
+| **Repository Integration** | 사용하지 않음 | 실제 DB (Testcontainers) 사용 |
+| **E2E (Controller)** | `@MockBean` 사용 | Service 레이어 Mock 처리 |
+
+**7. @DisplayName 한글 사용**
+
+메서드명은 영어, `@DisplayName`은 한글로 작성:
+```java
+@Test
+@DisplayName("존재하는 이메일로 조회하면 사용자를 반환한다")
+void findByEmail_existingEmail_returnsUser() { }
+```
 
 ### 학습 중심 개발 문화
 

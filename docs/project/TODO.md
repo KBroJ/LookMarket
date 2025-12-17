@@ -1,6 +1,6 @@
 # LookMarket TODO 리스트
 
-> **마지막 업데이트**: 2025-12-17
+> **마지막 업데이트**: 2025-12-17 (오후 현행화)
 >
 > **개발 방식**: 수직적 슬라이스 (Vertical Slice) + 도메인 완성 우선
 > - 각 도메인: 기본 구현 → 테스트 → 프론트엔드 연동 순서로 완성
@@ -142,36 +142,52 @@
 - [x] ADR-002-RESTful-API-설계-원칙.md
 - [x] 251217_RESTful-API-설계-완벽-가이드.md
 
+### Tests (Phase 1-B)
+- [x] JwtTokenProviderTest (JWT 단위 테스트)
+  - [x] Access Token 생성 테스트
+  - [x] Refresh Token 생성 테스트
+  - [x] 토큰 검증 테스트
+  - [x] 클레임 추출 테스트
+- [x] AuthServiceTest (AuthService 단위 테스트, Mockito)
+  - [x] 로그인 성공/실패 테스트
+  - [x] 비활성/정지 계정 로그인 테스트
+
 ---
 
 ## 🟡 Phase 1-C: User 테스트 보강 (다음 단계)
 
 > **목표**: User 도메인 테스트 커버리지 확대
+> **전략 변경** (2025-12-17): 기본 CRUD Repository 테스트 제외 (E2E에서 검증)
 
-### 통합 테스트 (Testcontainers)
-- [ ] UserRepository 통합 테스트
-  - [ ] save, findById, findByEmail 테스트
-  - [ ] 이메일 중복 체크 테스트
-- [ ] AuthService 통합 테스트
-  - [ ] 로그인 성공/실패 테스트
-  - [ ] 토큰 발급 및 검증 테스트
+### ✅ 완료된 작업
+- [x] 테스트 코드 작성 규칙 정립 (CLAUDE.md)
+- [x] @Tag 어노테이션 제거 (일관성 확보)
+- [x] Repository 통합 테스트 전략 재정립 (기본 CRUD 테스트 불필요)
+- [x] AuthController E2E 테스트 작성 (`AuthControllerE2ETest.java`)
 
-### E2E 테스트 (REST Assured 또는 MockMvc)
+### E2E 테스트 (MockMvc)
+- [x] AuthController API 테스트
+  - [x] 로그인 API (성공, 실패)
+  - [x] 토큰 갱신 API
 - [ ] UserController API 테스트
   - [ ] 회원가입 API (성공, 이메일 중복, validation 실패)
   - [ ] 사용자 조회 API (성공, 404)
   - [ ] 이메일/비밀번호 변경 API
   - [ ] 상태 변경 API
-- [ ] AuthController API 테스트
-  - [ ] 로그인 API (성공, 실패)
-  - [ ] 토큰 갱신 API (성공, 만료)
   - [ ] 인증 필요 API 접근 테스트
 
-### JWT 단위 테스트
-- [ ] JwtTokenProvider 테스트
-  - [ ] 토큰 생성 테스트
-  - [ ] 토큰 검증 테스트 (유효, 만료, 잘못된 서명)
-  - [ ] 클레임 추출 테스트
+### 통합 테스트 (필요 시)
+> **작성 기준**: 복잡한 QueryDSL 쿼리가 추가될 때만 작성
+> **현재 상태**: 기본 CRUD만 있으므로 불필요 (~~UserRepository 테스트 삭제됨~~)
+
+- [ ] 복잡한 QueryDSL 쿼리 테스트 (다중 조건 검색, 페이징 등) - 해당 기능 구현 시 추가
+
+### JWT 단위 테스트 ✅ (Phase 1-B에서 완료됨)
+- [x] JwtTokenProvider 테스트 (`JwtTokenProviderTest.java`)
+  - [x] 토큰 생성 테스트
+  - [x] 토큰 검증 테스트
+  - [x] 클레임 추출 테스트
+- [x] AuthService 테스트 (`AuthServiceTest.java`)
 
 ---
 

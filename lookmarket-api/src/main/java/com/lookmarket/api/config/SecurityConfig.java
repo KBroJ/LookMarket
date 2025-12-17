@@ -46,6 +46,9 @@ public class SecurityConfig {
                         // 인증 관련 API는 모두 허용
                         .requestMatchers("/api/v1/auth/**").permitAll()
 
+                        // 회원가입은 인증 없이 허용 (POST /api/v1/users)
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/users").permitAll()
+
                         // Swagger UI 및 API 문서 허용
                         .requestMatchers(
                                 "/swagger-ui/**",
@@ -65,7 +68,17 @@ public class SecurityConfig {
                 )
 
                 // JWT 필터 추가 (UsernamePasswordAuthenticationFilter 앞에 위치)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // 인증되지 않은 요청에 401 반환 (기본값은 403)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(org.springframework.http.HttpStatus.UNAUTHORIZED.value());
+                            response.setContentType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write("{\"code\":\"AUTHENTICATION_REQUIRED\",\"message\":\"인증이 필요합니다.\"}");
+                        })
+                );
 
         return http.build();
     }
